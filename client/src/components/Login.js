@@ -20,7 +20,7 @@ const Login = () => {
     const result = await login(username, password, pin);
     
     if (result.success) {
-      navigate('/runsheets');
+      navigate('/checklists');
     } else {
       setError(result.error);
     }

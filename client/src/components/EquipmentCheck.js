@@ -182,7 +182,7 @@ const EquipmentCheck = () => {
         }
       });
       alert('Equipment check submitted successfully!');
-      navigate('/runsheets');
+      navigate('/checklists');
     } catch (error) {
       console.error('Error submitting form:', error);
       alert('Error submitting form. Please try again.');
