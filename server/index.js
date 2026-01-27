@@ -192,6 +192,15 @@ initializeRunsheets();
 
 // Routes
 
+// Health check endpoint for cron jobs (keeps service active) - must be before other routes
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    service: 'AmbuCheck API'
+  });
+});
+
 // Authentication
 app.post('/api/login', async (req, res) => {
   const { username, password, pin } = req.body;
@@ -377,27 +386,24 @@ app.get('/api/admin/users', authenticateToken, (req, res) => {
   res.json(users.map(u => ({ ...u, password: undefined })));
 });
 
-// Health check endpoint for cron jobs (keeps service active)
-app.get('/api/health', (req, res) => {
-  res.json({ 
-    status: 'ok', 
-    timestamp: new Date().toISOString(),
-    service: 'AmbuCheck API'
-  });
-});
-
 // Serve React client build in production
 if (process.env.NODE_ENV === 'production') {
   const clientBuildPath = path.join(__dirname, '../client/build');
 
   if (fs.existsSync(clientBuildPath)) {
-    app.use(express.static(clientBuildPath));
-
-    // All non-API routes should serve the React index.html
-    app.get('*', (req, res, next) => {
-      // Don't serve React app for API routes
+    // Serve static files (but not for API routes)
+    app.use((req, res, next) => {
       if (req.path.startsWith('/api/')) {
         return next();
+      }
+      express.static(clientBuildPath)(req, res, next);
+    });
+
+    // All non-API routes should serve the React index.html
+    app.get('*', (req, res) => {
+      // Don't serve React app for API routes
+      if (req.path.startsWith('/api/')) {
+        return res.status(404).json({ error: 'API endpoint not found' });
       }
       res.sendFile(path.join(clientBuildPath, 'index.html'));
     });
