@@ -78,8 +78,7 @@ We may update this Privacy Policy from time to time. We will notify you of any c
 
 If you have any questions about this Privacy Policy or our data practices, please contact us:
 
-**Email:** [Your contact email]
-**Address:** [Your organization address]
+**Email:** markkelly0042@yahoo.com
 
 ## Compliance
 
