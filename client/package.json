@@ -4,17 +4,25 @@
   "private": true,
   "proxy": "http://localhost:5001",
   "dependencies": {
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/cli": "^8.0.2",
+    "@capacitor/core": "^8.0.2",
+    "axios": "^1.6.2",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.20.0",
-    "react-scripts": "5.0.1",
-    "axios": "^1.6.2"
+    "react-scripts": "5.0.1"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "cap:add": "npx cap add",
+    "cap:sync": "npx cap sync",
+    "cap:open": "npx cap open",
+    "android:build": "npm run build && npx cap sync && cd android && ./gradlew bundleRelease",
+    "android:build:aab": "npm run build && npx cap sync && cd android && ./gradlew bundleRelease"
   },
   "eslintConfig": {
     "extends": [
@@ -34,4 +42,3 @@
     ]
   }
 }
-
