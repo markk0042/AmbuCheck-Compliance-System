@@ -394,7 +394,11 @@ if (process.env.NODE_ENV === 'production') {
     app.use(express.static(clientBuildPath));
 
     // All non-API routes should serve the React index.html
-    app.get('*', (req, res) => {
+    app.get('*', (req, res, next) => {
+      // Don't serve React app for API routes
+      if (req.path.startsWith('/api/')) {
+        return next();
+      }
       res.sendFile(path.join(clientBuildPath, 'index.html'));
     });
   }
