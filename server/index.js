@@ -377,6 +377,15 @@ app.get('/api/admin/users', authenticateToken, (req, res) => {
   res.json(users.map(u => ({ ...u, password: undefined })));
 });
 
+// Health check endpoint for cron jobs (keeps service active)
+app.get('/api/health', (req, res) => {
+  res.json({ 
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    service: 'AmbuCheck API'
+  });
+});
+
 // Serve React client build in production
 if (process.env.NODE_ENV === 'production') {
   const clientBuildPath = path.join(__dirname, '../client/build');
