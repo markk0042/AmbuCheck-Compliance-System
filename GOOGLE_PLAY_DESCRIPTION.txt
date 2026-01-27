@@ -1,0 +1,57 @@
+AmbuCheck - Ambulance Equipment Compliance Checklist
+
+AmbuCheck is a comprehensive mobile application designed for ambulance service personnel to ensure vehicle and medical equipment compliance, safety, and readiness.
+
+KEY FEATURES:
+
+✅ Vehicle Defect Inspection (VDI)
+Complete start-of-shift and end-of-shift vehicle checks including lighting, fluids, medical gases, cockpit, patient area, and required documentation.
+
+✅ Equipment & Bag Checks
+Comprehensive checklists for:
+• BLS (Basic Life Support) bags
+• EMT medication pouches
+• ALS (Advanced Life Support) bags
+• Paramedic and Advanced Paramedic medication bags
+• Monitor/AED equipment verification
+
+✅ Medication Management
+Track medication expiry dates, quantities, and tamper seal verification for all medication bags and pouches.
+
+✅ Incident Reporting
+Vehicle IR1 incident report form with photo attachment capability for documenting accidents, damage, or safety events.
+
+✅ Photo Documentation
+Capture and attach photos for vehicle inspections, equipment verification, and incident reporting.
+
+✅ Secure Authentication
+Role-based access with PIN protection for crew members, ensuring only authorized personnel can complete checks.
+
+✅ Offline Capability
+Complete forms and checklists even when connectivity is limited, with automatic synchronization when connection is restored.
+
+BENEFITS:
+
+• Ensures compliance with medical equipment and vehicle safety standards
+• Reduces paperwork and administrative burden
+• Provides digital audit trail for all inspections and checks
+• Helps prevent equipment shortages and expired medications
+• Streamlines shift start and end procedures
+• Improves patient safety through systematic equipment verification
+
+WHO IT'S FOR:
+
+AmbuCheck is designed for:
+• Ambulance service personnel
+• EMTs and Paramedics
+• Advanced Paramedics
+• Fleet managers
+• Compliance officers
+
+REQUIREMENTS:
+
+This app requires an active account with your ambulance service organization. Contact your administrator for access credentials.
+
+---
+
+AmbuCheck helps ensure your ambulance is always ready for service, with all equipment checked, verified, and compliant. Download now and streamline your vehicle and equipment compliance procedures.
