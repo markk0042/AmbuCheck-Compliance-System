@@ -54,6 +54,7 @@ function App() {
               </PrivateRoute>
             }
           />
+          <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           <Route path="/" element={<Navigate to="/checklists" />} />
         </Routes>
       </Router>

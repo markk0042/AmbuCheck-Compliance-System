@@ -14,6 +14,10 @@ const config: CapacitorConfig = {
       keystorePath: 'android/app/ambucheck-release.keystore',
       keystoreAlias: 'ambucheck'
     }
+  },
+  ios: {
+    // iOS-specific configuration
+    contentInset: 'automatic'
   }
 };
 

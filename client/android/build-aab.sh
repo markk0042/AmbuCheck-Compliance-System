@@ -26,8 +26,16 @@ if [ -z "$ANDROID_HOME" ]; then
     export PATH="$PATH:$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools"
 fi
 
-# Set Java 17 for Gradle (required for Android builds)
-if [ -d "/usr/local/opt/openjdk@17" ]; then
+# Set Java 21 for Gradle (required for Capacitor/Android builds)
+if [ -d "/usr/local/opt/openjdk@21" ]; then
+    export JAVA_HOME="/usr/local/opt/openjdk@21"
+    export PATH="$JAVA_HOME/bin:$PATH"
+    echo "Using Java 21 for build"
+elif [ -d "/opt/homebrew/opt/openjdk@21" ]; then
+    export JAVA_HOME="/opt/homebrew/opt/openjdk@21"
+    export PATH="$JAVA_HOME/bin:$PATH"
+    echo "Using Java 21 for build"
+elif [ -d "/usr/local/opt/openjdk@17" ]; then
     export JAVA_HOME="/usr/local/opt/openjdk@17"
     export PATH="$JAVA_HOME/bin:$PATH"
     echo "Using Java 17 for build"
