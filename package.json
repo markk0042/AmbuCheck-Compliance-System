@@ -1,0 +1,21 @@
+{
+  "name": "ambulance-checklist-app",
+  "version": "1.0.0",
+  "description": "Ambulance Equipment Compliance Checklist App",
+  "main": "server/index.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "cd server && nodemon index.js",
+    "client": "cd client && npm start",
+    "install-all": "npm install && cd server && npm install && cd ../client && npm install"
+  },
+  "keywords": ["ambulance", "checklist", "compliance"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.0.2"
+  }
+}
+
+
