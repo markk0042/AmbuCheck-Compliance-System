@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../utils/axios';
 import './EquipmentCheck.css';
 
 const EquipmentCheck = () => {
+  const navigate = useNavigate();
   const [pin, setPin] = useState('');
   const [pin2, setPin2] = useState('');
   const [formData, setFormData] = useState({
