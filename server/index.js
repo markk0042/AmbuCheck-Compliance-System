@@ -6,6 +6,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
+require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
@@ -347,7 +348,20 @@ app.get('/api/admin/users', authenticateToken, (req, res) => {
   res.json(users.map(u => ({ ...u, password: undefined })));
 });
 
+// Serve React client build in production
+if (process.env.NODE_ENV === 'production') {
+  const clientBuildPath = path.join(__dirname, '../client/build');
+
+  if (fs.existsSync(clientBuildPath)) {
+    app.use(express.static(clientBuildPath));
+
+    // All non-API routes should serve the React index.html
+    app.get('*', (req, res) => {
+      res.sendFile(path.join(clientBuildPath, 'index.html'));
+    });
+  }
+}
+
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
-
