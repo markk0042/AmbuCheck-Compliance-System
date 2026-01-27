@@ -1,12 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import React, { useState, useEffect, useCallback } from 'react';
 import api from '../utils/axios';
 import './RunsheetList.css';
 
 const RunsheetList = () => {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
   const [runsheets, setRunsheets] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -14,11 +10,7 @@ const RunsheetList = () => {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchRunsheets();
-  }, [currentPage, searchTerm]);
-
-  const fetchRunsheets = async () => {
+  const fetchRunsheets = useCallback(async () => {
     try {
       setLoading(true);
       const response = await api.get('/api/runsheets', {
@@ -36,16 +28,15 @@ const RunsheetList = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [currentPage, searchTerm]);
+
+  useEffect(() => {
+    fetchRunsheets();
+  }, [fetchRunsheets]);
 
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
     setCurrentPage(1);
-  };
-
-  const handleLogout = () => {
-    logout();
-    navigate('/login');
   };
 
   return (

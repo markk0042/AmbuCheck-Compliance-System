@@ -1,14 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
+import { useParams } from 'react-router-dom';
 import api from '../utils/axios';
 import { formsConfig } from '../config/formsConfig';
 import './DynamicForm.css';
 
 const DynamicForm = () => {
   const { formId } = useParams();
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
 
   const formDef = formsConfig[formId];
 
@@ -352,15 +349,6 @@ const DynamicForm = () => {
                     field.id === 'practitionerName' ||
                     field.id === 'pin' ||
                     field.id === 'bagNumber' ||
-                    field.id === 'completedAt' ||
-                    field.id === 'email';
-
-                  const isMetaFieldAp =
-                    field.id === 'controlledTamperTagged' ||
-                    field.id === 'apBagTamperTagged' ||
-                    field.id === 'practitionerName' ||
-                    field.id === 'pin' ||
-                    field.id === 'controlledPouchNumber' ||
                     field.id === 'completedAt' ||
                     field.id === 'email';
 
