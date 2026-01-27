@@ -6,6 +6,7 @@ import EquipmentCheck from './components/EquipmentCheck';
 import ChecklistList from './components/ChecklistList';
 import DynamicForm from './components/DynamicForm';
 import Layout from './components/Layout';
+import PrivacyPolicy from './components/PrivacyPolicy';
 import './App.css';
 
 const PrivateRoute = ({ children }) => {
