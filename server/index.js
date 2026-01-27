@@ -13,10 +13,17 @@ const PORT = process.env.PORT || 5001;
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
 // Middleware - CORS must be first
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://127.0.0.1:3000'
+];
+
 app.use(cors({
   origin: (origin, callback) => {
     // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
+    if (!origin) {
+      return callback(null, true);
+    }
     
     // Allow localhost for development
     if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
@@ -24,11 +31,17 @@ app.use(cors({
     }
     
     // Allow all Vercel preview and production deployments
-    if (origin.endsWith('.vercel.app')) {
+    if (origin.includes('.vercel.app')) {
+      return callback(null, true);
+    }
+    
+    // Check explicit allowed origins
+    if (allowedOrigins.includes(origin)) {
       return callback(null, true);
     }
     
     // Reject other origins
+    console.log('CORS blocked origin:', origin);
     callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
