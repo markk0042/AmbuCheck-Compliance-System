@@ -1,7 +1,26 @@
 import axios from 'axios';
+import { Capacitor } from '@capacitor/core';
+
+// Determine the API base URL
+// For mobile apps (Capacitor), always use the Render backend
+// For web, use environment variable or default to Render backend
+const getBaseURL = () => {
+  // If REACT_APP_API_URL is set, use it
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+  
+  // If running in Capacitor (mobile app), use Render backend
+  if (Capacitor.isNativePlatform()) {
+    return 'https://ambucheck-compliance-system.onrender.com';
+  }
+  
+  // For web development, use localhost
+  return 'http://localhost:5001';
+};
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:5001',
+  baseURL: getBaseURL(),
   headers: {
     'Content-Type': 'application/json'
   }
