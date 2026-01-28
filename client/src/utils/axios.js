@@ -29,7 +29,11 @@ const api = axios.create({
 // Add token to requests if available
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    // Prefer sessionStorage, but fall back to localStorage for any legacy token
+    let token = sessionStorage.getItem('token');
+    if (!token) {
+      token = localStorage.getItem('token');
+    }
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -45,8 +49,9 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401 || error.response?.status === 403) {
+      // Clear any stored tokens and allow AuthContext / routing to handle redirect
+      sessionStorage.removeItem('token');
       localStorage.removeItem('token');
-      window.location.href = '/login';
     }
     return Promise.reject(error);
   }

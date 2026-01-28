@@ -42,6 +42,8 @@ export const AuthProvider = ({ children }) => {
       const response = await api.get('/api/me');
       setUser(response.data);
     } catch (error) {
+      // Clear any invalid/expired tokens
+      sessionStorage.removeItem('token');
       localStorage.removeItem('token');
     } finally {
       setLoading(false);
