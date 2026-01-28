@@ -4,11 +4,7 @@ const config: CapacitorConfig = {
   appId: 'com.ambucheck.app',
   appName: 'AmbuCheck',
   webDir: 'build',
-  server: {
-    // Use your Render backend URL for production
-    url: process.env.REACT_APP_API_URL || 'https://ambucheck-compliance-system.onrender.com',
-    cleartext: true
-  },
+  // server.url removed - axios.js handles API URL directly for production
   android: {
     buildOptions: {
       keystorePath: 'android/app/ambucheck-release.keystore',

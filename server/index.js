@@ -20,8 +20,13 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (like mobile apps or curl requests)
+    // Allow requests with no origin (like mobile apps, Capacitor apps, or curl requests)
     if (!origin) {
+      return callback(null, true);
+    }
+    
+    // Allow Capacitor app origins (capacitor://localhost, http://localhost, etc.)
+    if (origin.startsWith('capacitor://') || origin === 'capacitor://localhost') {
       return callback(null, true);
     }
     
