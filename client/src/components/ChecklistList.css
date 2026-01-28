@@ -3,7 +3,8 @@
 .hero-ambulance {
   position: relative;
   min-height: 100vh;
-  background-image: url('/ambulance.jpg');
+  /* Image is loaded from client/src/assets/ambulance.jpg */
+  background-image: url('../assets/ambulance.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
