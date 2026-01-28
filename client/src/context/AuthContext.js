@@ -16,7 +16,20 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    // Prefer sessionStorage so users must log in again
+    // when the browser/tab (or app WebView) is fully closed.
+    let token = sessionStorage.getItem('token');
+
+    // One‑time migration if an older token was stored in localStorage
+    if (!token) {
+      const legacyToken = localStorage.getItem('token');
+      if (legacyToken) {
+        sessionStorage.setItem('token', legacyToken);
+        localStorage.removeItem('token');
+        token = legacyToken;
+      }
+    }
+
     if (token) {
       fetchUser();
     } else {
@@ -39,7 +52,8 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await api.post('/api/login', { username, password, pin });
       const { token, user } = response.data;
-      localStorage.setItem('token', token);
+      // Store token only for current session
+      sessionStorage.setItem('token', token);
       setUser(user);
       return { success: true };
     } catch (error) {
@@ -51,6 +65,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
+    sessionStorage.removeItem('token');
+    // Clean up any legacy token that might still exist
     localStorage.removeItem('token');
     setUser(null);
   };

@@ -78,7 +78,6 @@ const Login = () => {
         <div className="login-info">
           <p><strong>Demo Credentials:</strong></p>
           <p>Admin: username: admin, password: admin123</p>
-          <p>User: username: markkelly, password: user123, PIN: (any value)</p>
         </div>
       </div>
     </div>
