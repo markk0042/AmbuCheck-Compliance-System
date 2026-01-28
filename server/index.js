@@ -25,13 +25,18 @@ app.use(cors({
       return callback(null, true);
     }
     
-    // Allow Capacitor app origins (capacitor://localhost, http://localhost, etc.)
+    // Allow Capacitor app origins (capacitor://localhost, etc.)
     if (origin.startsWith('capacitor://') || origin === 'capacitor://localhost') {
       return callback(null, true);
     }
     
-    // Allow localhost for development
+    // Allow HTTP localhost for development
     if (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+      return callback(null, true);
+    }
+
+    // Allow HTTPS localhost (seen from Android WebView as https://localhost)
+    if (origin.startsWith('https://localhost')) {
       return callback(null, true);
     }
     
