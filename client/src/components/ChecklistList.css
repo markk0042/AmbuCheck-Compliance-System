@@ -57,6 +57,12 @@
   margin-bottom: 16px;
 }
 
+.hero-ambulance__note {
+  font-size: 13px;
+  color: #cbd5f5;
+  margin-bottom: 10px;
+}
+
 .hero-ambulance__bullets {
   list-style: disc;
   padding-left: 20px;

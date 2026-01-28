@@ -1,14 +1,14 @@
 {
   "files": {
-    "main.css": "/static/css/main.fa7a264a.css",
-    "main.js": "/static/js/main.20cfdd0c.js",
+    "main.css": "/static/css/main.2fb884f1.css",
+    "main.js": "/static/js/main.2e8c7987.js",
     "static/media/ambulance.jpg": "/static/media/ambulance.21e824f5cbdc432e5efb.jpg",
     "index.html": "/index.html",
-    "main.fa7a264a.css.map": "/static/css/main.fa7a264a.css.map",
-    "main.20cfdd0c.js.map": "/static/js/main.20cfdd0c.js.map"
+    "main.2fb884f1.css.map": "/static/css/main.2fb884f1.css.map",
+    "main.2e8c7987.js.map": "/static/js/main.2e8c7987.js.map"
   },
   "entrypoints": [
-    "static/css/main.fa7a264a.css",
-    "static/js/main.20cfdd0c.js"
+    "static/css/main.2fb884f1.css",
+    "static/js/main.2e8c7987.js"
   ]
 }

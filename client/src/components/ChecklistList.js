@@ -13,6 +13,9 @@ const ChecklistList = () => {
               Capture VDI start‑of‑shift, end‑of‑shift and equipment checks in one secure,
               easy‑to‑use app. Give crews a clear checklist every time the wheels roll.
             </p>
+            <p className="hero-ambulance__note">
+              On tablet devices, AmbuCheck looks best in horizontal (landscape) view.
+            </p>
             <ul className="hero-ambulance__bullets">
               <li>Standardised daily VDI forms for every vehicle.</li>
               <li>Bag, monitor and medication checks at a glance.</li>
