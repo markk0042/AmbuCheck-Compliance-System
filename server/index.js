@@ -6,6 +6,7 @@ const fs = require('fs');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
+const PDFDocument = require('pdfkit');
 require('dotenv').config();
 
 const app = express();
@@ -335,6 +336,19 @@ app.get('/api/runsheets/:id', authenticateToken, (req, res) => {
   }
 });
 
+// Admin-only: list completed generic form submissions by formId
+app.get('/api/admin/forms/:formId/submissions', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  const { formId } = req.params;
+  const filename = `form-${formId}-submissions.json`;
+  const submissions = readJSON(filename);
+
+  res.json(submissions);
+});
+
 // Upload single photo
 app.post('/api/upload/:fieldName', authenticateToken, upload.single('file'), (req, res) => {
   if (!req.file) {
@@ -382,8 +396,72 @@ app.post('/api/equipment-checks', authenticateToken, upload.fields([
 
 // Get equipment checks
 app.get('/api/equipment-checks', authenticateToken, (req, res) => {
+  // For now this endpoint is primarily used by the admin Completed Forms
+  // dashboard, but we may later add per-user filtering.
   const checks = readJSON('equipment-checks.json');
   res.json(checks);
+});
+
+// Admin-only: generate PDF for a VDI – Start of Shift equipment check
+app.get('/api/admin/equipment-checks/:id/pdf', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  const id = parseInt(req.params.id, 10);
+  const checks = readJSON('equipment-checks.json');
+  const check = checks.find(c => c.id === id);
+
+  if (!check) {
+    return res.status(404).json({ error: 'Equipment check not found' });
+  }
+
+  const doc = new PDFDocument({ margin: 40 });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="vdi-start-${id}.pdf"`
+  );
+  doc.pipe(res);
+
+  doc.fontSize(16).text('AmbuCheck – VDI Start of Shift', { align: 'left' });
+  doc.moveDown(0.5);
+  doc.fontSize(13).text(`Record ID: ${check.id}`);
+  doc.fontSize(11).text(`Vehicle registration: ${check.registration || '-'}`);
+  doc.text(`Vehicle call sign: ${check.vehicleCallsign || '-'}`);
+  doc.text(`Staff name: ${check.staffName || '-'}`);
+  doc.text(`Created at: ${check.createdAt || '-'}`);
+  doc.moveDown();
+
+  doc.fontSize(13).text('Checklist Values', { underline: true });
+  doc.moveDown(0.5);
+  doc.fontSize(11);
+
+  const {
+    photos,
+    id: _id,
+    createdAt,
+    createdBy,
+    ...rest
+  } = check;
+
+  Object.entries(rest).forEach(([key, value]) => {
+    const safeValue =
+      typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+    doc.text(`${key}: ${safeValue}`, { lineGap: 2 });
+  });
+
+  if (photos && Object.keys(photos).length > 0) {
+    doc.moveDown();
+    doc.fontSize(13).text('Photos', { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(11);
+    Object.entries(photos).forEach(([key, pathValue]) => {
+      doc.text(`${key}: ${pathValue}`, { lineGap: 2 });
+    });
+  }
+
+  doc.end();
 });
 
 // Generic form submissions (for Driver Checklist, etc.)
@@ -412,6 +490,102 @@ app.post('/api/forms/:formId/submissions', authenticateToken, (req, res) => {
   res.json(newSubmission);
 });
 
+// Admin-only: generate PDF for a generic form submission
+app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  const { formId, submissionId } = req.params;
+  const filename = `form-${formId}-submissions.json`;
+  const submissions = readJSON(filename);
+  const id = parseInt(submissionId, 10);
+  const submission = submissions.find(s => s.id === id);
+
+  if (!submission) {
+    return res.status(404).json({ error: 'Submission not found' });
+  }
+
+  const doc = new PDFDocument({ margin: 40 });
+  res.setHeader('Content-Type', 'application/pdf');
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${formId}-submission-${submissionId}.pdf"`
+  );
+  doc.pipe(res);
+
+  doc.fontSize(16).text('AmbuCheck – Completed Form', { align: 'left' });
+  doc.moveDown(0.5);
+  doc.fontSize(13).text(`Form: ${formId}`);
+  doc.fontSize(11).text(`Submission ID: ${submission.id}`);
+  doc.text(`Submitted at: ${submission.createdAt || '-'}`);
+  doc.text(`Submitted by (user id): ${submission.createdBy || '-'}`);
+  doc.moveDown();
+
+  doc.fontSize(13).text('Answers', { underline: true });
+  doc.moveDown(0.5);
+  doc.fontSize(11);
+
+  const values = submission.values || {};
+  Object.entries(values).forEach(([key, value]) => {
+    const safeValue =
+      typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
+    doc.text(`${key}: ${safeValue}`, { lineGap: 2 });
+  });
+
+  doc.end();
+});
+
+// Form configuration overrides (admin-editable)
+// All authenticated users can read effective config via /api/forms/config/:formId
+// Admins can create/update overrides via /api/admin/forms/config/:formId
+
+app.get('/api/forms/config/:formId', authenticateToken, (req, res) => {
+  const { formId } = req.params;
+  const allConfigs = readJSON('form-config-overrides.json') || {};
+  const override = allConfigs[formId];
+
+  if (!override) {
+    return res.status(404).json({ error: 'No override found' });
+  }
+
+  res.json({ formId, config: override });
+});
+
+app.get('/api/admin/forms/config/:formId', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const { formId } = req.params;
+  const allConfigs = readJSON('form-config-overrides.json') || {};
+  const override = allConfigs[formId];
+
+  if (!override) {
+    return res.status(404).json({ error: 'No override found' });
+  }
+
+  res.json({ formId, config: override });
+});
+
+app.put('/api/admin/forms/config/:formId', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+
+  const { formId } = req.params;
+  const { config } = req.body || {};
+
+  if (!config || typeof config !== 'object') {
+    return res.status(400).json({ error: 'Valid form config object is required' });
+  }
+
+  const allConfigs = readJSON('form-config-overrides.json') || {};
+  allConfigs[formId] = config;
+  writeJSON('form-config-overrides.json', allConfigs);
+
+  res.json({ formId, config });
+});
+
 // Admin routes
 app.get('/api/admin/users', authenticateToken, (req, res) => {
   if (req.user.role !== 'admin') {
@@ -419,6 +593,122 @@ app.get('/api/admin/users', authenticateToken, (req, res) => {
   }
   const users = readJSON('users.json');
   res.json(users.map(u => ({ ...u, password: undefined })));
+});
+
+// Admin: Practitioner management
+app.get('/api/admin/practitioners', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const practitioners = readJSON('practitioners.json');
+  res.json(practitioners);
+});
+
+app.post('/api/admin/practitioners', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const { name, pin, role = 'crew', active = true } = req.body || {};
+  if (!name || !pin) {
+    return res.status(400).json({ error: 'Name and PIN are required' });
+  }
+  const practitioners = readJSON('practitioners.json');
+  const nextId = practitioners.length > 0 ? Math.max(...practitioners.map(p => p.id || 0)) + 1 : 1;
+  const newPractitioner = { id: nextId, name, pin, role, active };
+  practitioners.push(newPractitioner);
+  writeJSON('practitioners.json', practitioners);
+  res.status(201).json(newPractitioner);
+});
+
+app.put('/api/admin/practitioners/:id', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const id = parseInt(req.params.id, 10);
+  const practitioners = readJSON('practitioners.json');
+  const index = practitioners.findIndex(p => p.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Practitioner not found' });
+  }
+  const updated = { ...practitioners[index], ...req.body, id };
+  practitioners[index] = updated;
+  writeJSON('practitioners.json', practitioners);
+  res.json(updated);
+});
+
+app.delete('/api/admin/practitioners/:id', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const id = parseInt(req.params.id, 10);
+  const practitioners = readJSON('practitioners.json');
+  const remaining = practitioners.filter(p => p.id !== id);
+  if (remaining.length === practitioners.length) {
+    return res.status(404).json({ error: 'Practitioner not found' });
+  }
+  writeJSON('practitioners.json', remaining);
+  res.status(204).end();
+});
+
+// Vehicles (registrations / call signs)
+// Any authenticated user can read vehicles (for dropdowns), but only admin can modify.
+app.get('/api/vehicles', authenticateToken, (req, res) => {
+  const vehicles = readJSON('vehicles.json');
+  res.json(vehicles);
+});
+
+app.get('/api/admin/vehicles', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const vehicles = readJSON('vehicles.json');
+  res.json(vehicles);
+});
+
+app.post('/api/admin/vehicles', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const { registration, callsign = '', description = '' } = req.body || {};
+  if (!registration) {
+    return res.status(400).json({ error: 'Registration is required' });
+  }
+  const vehicles = readJSON('vehicles.json');
+  const nextId = vehicles.length > 0 ? Math.max(...vehicles.map(v => v.id || 0)) + 1 : 1;
+  const newVehicle = { id: nextId, registration, callsign, description };
+  vehicles.push(newVehicle);
+  writeJSON('vehicles.json', vehicles);
+  res.status(201).json(newVehicle);
+});
+
+app.put('/api/admin/vehicles/:id', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const id = parseInt(req.params.id, 10);
+  const vehicles = readJSON('vehicles.json');
+  const index = vehicles.findIndex(v => v.id === id);
+  if (index === -1) {
+    return res.status(404).json({ error: 'Vehicle not found' });
+  }
+  const updated = { ...vehicles[index], ...req.body, id };
+  vehicles[index] = updated;
+  writeJSON('vehicles.json', vehicles);
+  res.json(updated);
+});
+
+app.delete('/api/admin/vehicles/:id', authenticateToken, (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const id = parseInt(req.params.id, 10);
+  const vehicles = readJSON('vehicles.json');
+  const remaining = vehicles.filter(v => v.id !== id);
+  if (remaining.length === vehicles.length) {
+    return res.status(404).json({ error: 'Vehicle not found' });
+  }
+  writeJSON('vehicles.json', remaining);
+  res.status(204).end();
 });
 
 // Serve React client build in production

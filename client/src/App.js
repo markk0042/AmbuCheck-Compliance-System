@@ -8,6 +8,8 @@ import DynamicForm from './components/DynamicForm';
 import Layout from './components/Layout';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import SplashScreen from './components/SplashScreen';
+import CompletedForms from './components/CompletedForms';
+import AdminSettings from './components/AdminSettings';
 import './App.css';
 
 const PrivateRoute = ({ children }) => {
@@ -69,6 +71,26 @@ function App() {
                 <PrivateRoute>
                   <Layout>
                     <EquipmentCheck />
+                  </Layout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/completed-forms"
+              element={
+                <PrivateRoute>
+                  <Layout>
+                    <CompletedForms />
+                  </Layout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/admin/settings"
+              element={
+                <PrivateRoute>
+                  <Layout>
+                    <AdminSettings />
                   </Layout>
                 </PrivateRoute>
               }

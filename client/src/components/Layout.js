@@ -119,13 +119,31 @@ const Layout = ({ children }) => {
               Advanced Para Meds
             </button>
           </div>
+
+          {user?.role === 'admin' && (
+            <div className="sidebar-section">
+              <p className="sidebar-section-title">Admin</p>
+              <button
+                className={`sidebar-item ${isActive('/admin/completed-forms') ? 'active' : ''}`}
+                onClick={() => go('/admin/completed-forms')}
+              >
+                Completed Forms
+              </button>
+              <button
+                className={`sidebar-item ${isActive('/admin/settings') ? 'active' : ''}`}
+                onClick={() => go('/admin/settings')}
+              >
+                Settings
+              </button>
+            </div>
+          )}
         </nav>
 
         <div className="sidebar-footer">
           {user && (
             <>
               <div className="sidebar-user-label">
-                Logged in as {user.name || user.username}
+                Logged in as {user.name || user.username} {user.role ? `(${user.role})` : ''}
               </div>
               <button className="sidebar-logout-btn" onClick={handleLogout}>
                 Log Out

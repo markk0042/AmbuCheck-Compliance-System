@@ -5,5 +5,12 @@
     "password": "$2a$10$aRL35i9pahHH9aXu5c3pGelCAAzycQedcLcKrl7uopfrHzutEX7h6",
     "role": "admin",
     "name": "Admin User"
+  },
+  {
+    "id": 2,
+    "username": "user1",
+    "password": "$2a$10$CeVEXdq1SU6MT7CaNwrh9uBM2HfSERgJ7MalRtCz1gB0K8DtZBnFG",
+    "role": "user",
+    "name": "Standard User"
   }
 ]

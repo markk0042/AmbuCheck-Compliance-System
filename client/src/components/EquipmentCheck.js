@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../utils/axios';
 import './EquipmentCheck.css';
@@ -7,6 +7,7 @@ const EquipmentCheck = () => {
   const navigate = useNavigate();
   const [pin, setPin] = useState('');
   const [pin2, setPin2] = useState('');
+  const [registrations, setRegistrations] = useState([]);
   const [formData, setFormData] = useState({
     registration: '',
     vehicleCallsign: '',
@@ -108,6 +109,23 @@ const EquipmentCheck = () => {
     rearPhoto: false,
     offsidePhoto: false
   });
+
+  useEffect(() => {
+    // Load registrations / vehicles for the VDI registration dropdown
+    const loadVehicles = async () => {
+      try {
+        const res = await api.get('/api/vehicles');
+        if (Array.isArray(res.data)) {
+          setRegistrations(res.data);
+        }
+      } catch (err) {
+        console.error('Error loading vehicles for VDI form', err);
+        // Fallback: keep hard-coded sample registrations
+      }
+    };
+
+    loadVehicles();
+  }, []);
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -490,15 +508,26 @@ const EquipmentCheck = () => {
               <label htmlFor="registration">Registration <span className="required">*</span></label>
               <select id="registration" name="registration" value={formData.registration} onChange={handleInputChange} required>
                 <option value="">Select</option>
-                {/* Sample Kildare registrations 2019–2025 */}
-                <option value="191-KE-2345">191-KE-2345</option>
-                <option value="192-KE-9081">192-KE-9081</option>
-                <option value="201-KE-4412">201-KE-4412</option>
-                <option value="202-KE-7730">202-KE-7730</option>
-                <option value="211-KE-1258">211-KE-1258</option>
-                <option value="221-KE-5679">221-KE-5679</option>
-                <option value="231-KE-9023">231-KE-9023</option>
-                <option value="241-KE-3147">241-KE-3147</option>
+                {registrations.length > 0
+                  ? registrations.map(v => (
+                      <option key={v.id} value={v.registration}>
+                        {v.registration}
+                        {v.callsign ? ` – ${v.callsign}` : ''}
+                      </option>
+                    ))
+                  : (
+                    <>
+                      {/* Fallback sample registrations if no vehicles configured yet */}
+                      <option value="191-KE-2345">191-KE-2345</option>
+                      <option value="192-KE-9081">192-KE-9081</option>
+                      <option value="201-KE-4412">201-KE-4412</option>
+                      <option value="202-KE-7730">202-KE-7730</option>
+                      <option value="211-KE-1258">211-KE-1258</option>
+                      <option value="221-KE-5679">221-KE-5679</option>
+                      <option value="231-KE-9023">231-KE-9023</option>
+                      <option value="241-KE-3147">241-KE-3147</option>
+                    </>
+                  )}
               </select>
             </div>
             <div className="form-group">

@@ -1,0 +1,142 @@
+.completed-forms-container {
+  padding: 24px;
+}
+
+.completed-forms-container h2 {
+  margin-bottom: 4px;
+}
+
+.completed-forms-subtitle {
+  margin-bottom: 16px;
+  color: #4b5563;
+  font-size: 14px;
+}
+
+.completed-forms-layout {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.completed-forms-nav {
+  border-radius: 12px;
+  background-color: #f3f4f6;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.completed-forms-nav-item {
+  width: 100%;
+  text-align: left;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.completed-forms-nav-item:hover {
+  background-color: #e5e7eb;
+}
+
+.completed-forms-nav-item.active {
+  background-color: #1d4ed8;
+  color: #ffffff;
+}
+
+.completed-forms-content {
+  border-radius: 12px;
+  background-color: #ffffff;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+}
+
+.completed-forms-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.completed-forms-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.completed-forms-tools input[type='text'] {
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #d1d5db;
+  font-size: 13px;
+}
+
+.completed-forms-tools .btn.small {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+.completed-forms-error {
+  margin-bottom: 8px;
+  color: #b91c1c;
+  font-size: 14px;
+}
+
+.completed-forms-empty,
+.completed-forms-loading {
+  padding: 12px 0;
+  font-size: 14px;
+  color: #6b7280;
+}
+
+.completed-forms-table-wrapper {
+  max-height: 480px;
+  overflow: auto;
+}
+
+.completed-forms-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.completed-forms-table th,
+.completed-forms-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+}
+
+.completed-forms-table th {
+  font-weight: 600;
+  background-color: #f9fafb;
+}
+
+.completed-forms-table td pre {
+  margin: 4px 0 0;
+  padding: 6px;
+  background-color: #f9fafb;
+  border-radius: 6px;
+  max-height: 220px;
+  overflow: auto;
+}
+
+@media (max-width: 900px) {
+  .completed-forms-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .completed-forms-nav {
+    flex-direction: row;
+    overflow-x: auto;
+  }
+
+  .completed-forms-nav-item {
+    white-space: nowrap;
+  }
+}
+

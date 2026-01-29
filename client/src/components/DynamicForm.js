@@ -7,12 +7,52 @@ import './DynamicForm.css';
 const DynamicForm = () => {
   const { formId } = useParams();
 
-  const formDef = formsConfig[formId];
+  const baseFormDef = formsConfig[formId];
 
+  const [formDef, setFormDef] = useState(baseFormDef || null);
+  const [configLoading, setConfigLoading] = useState(true);
   const [values, setValues] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+
+  // Load any server-side form config overrides and initialise auto fields
+  useEffect(() => {
+    let cancelled = false;
+    setConfigLoading(true);
+    setError('');
+    setSuccess('');
+    setValues({});
+
+    const loadConfig = async () => {
+      // Start with base config from client
+      let nextDef = formsConfig[formId] || null;
+
+      try {
+        const res = await api.get(`/api/forms/config/${formId}`);
+        if (res.data?.config) {
+          nextDef = res.data.config;
+        }
+      } catch (err) {
+        // 404 just means no override; other errors we log but still fall back to base
+        if (err.response?.status !== 404) {
+          // eslint-disable-next-line no-console
+          console.error('Error loading form config override', err);
+        }
+      }
+
+      if (!cancelled) {
+        setFormDef(nextDef);
+        setConfigLoading(false);
+      }
+    };
+
+    loadConfig();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [formId]);
 
   // Initialise auto fields for specific forms (e.g. ALS Bag datetime)
   useEffect(() => {
@@ -36,6 +76,16 @@ const DynamicForm = () => {
       });
     }
   }, [formDef]);
+
+  if (configLoading) {
+    return (
+      <div className="dynamic-form-container">
+        <div className="content-wrapper">
+          <p>Loading form…</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!formDef) {
     return (

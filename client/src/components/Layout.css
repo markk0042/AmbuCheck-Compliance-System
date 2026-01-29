@@ -1,7 +1,7 @@
 .app-shell {
   display: flex;
   min-height: 100vh;
-  background-color: #f5f5f5;
+  background-color: #f3f4f6;
 }
 
 .top-nav {
@@ -10,8 +10,9 @@
   left: 0;
   right: 0;
   height: 56px;
-  background-color: #0d47a1;
-  color: #fff;
+  background-color: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -30,8 +31,8 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: #fff;
-  color: #0d47a1;
+  background-color: #e0edff;
+  color: #1d4ed8;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -68,7 +69,7 @@
 .sidebar-toggle {
   border: none;
   background: transparent;
-  color: #fff;
+  color: #111827;
   font-size: 20px;
   margin-right: 8px;
   cursor: pointer;
@@ -81,13 +82,14 @@
   left: 0;
   bottom: 0;
   width: 240px;
-  background-color: #102027;
-  color: #fff;
+  background-color: #f9fafb;
+  color: #111827;
   padding: 12px 8px;
   overflow-y: auto;
   z-index: 900;
   display: flex;
   flex-direction: column;
+  border-right: 1px solid #e5e7eb;
 }
 
 .sidebar-nav {
@@ -113,24 +115,25 @@
   border-radius: 4px;
   border: none;
   background: transparent;
-  color: #eceff1;
+  color: #111827;
   font-size: 14px;
   cursor: pointer;
 }
 
 .sidebar-item:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: #e5e7eb;
 }
 
 .sidebar-item.active {
-  background-color: #1976d2;
+  background-color: #1d4ed8;
+  color: #ffffff;
 }
 
 .sidebar-footer {
   padding: 10px 12px 4px;
-  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 1px solid #e5e7eb;
   font-size: 12px;
-  color: #cfd8dc;
+  color: #6b7280;
 }
 
 .sidebar-user-label {
@@ -144,15 +147,15 @@
   width: 100%;
   padding: 6px 10px;
   border-radius: 4px;
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: transparent;
-  color: #eceff1;
+  border: 1px solid #d1d5db;
+  background: #ffffff;
+  color: #111827;
   font-size: 13px;
   cursor: pointer;
 }
 
 .sidebar-logout-btn:hover {
-  background-color: rgba(255, 255, 255, 0.08);
+  background-color: #e5e7eb;
 }
 
 .app-main {
