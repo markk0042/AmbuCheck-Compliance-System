@@ -263,13 +263,11 @@ const DynamicForm = () => {
     const isSystem48 = formDef.id === 'system48';
     const isApMeds = formDef.id === 'apMeds';
     const isParamedicMeds = formDef.id === 'paramedicMeds';
-    const isBlsBag = formDef.id === 'blsBagUpdated';
     const isEmtMeds = formDef.id === 'emtMeds';
     const tamperTaggedYes = isSystem48 && values.tamperSealTagged === 'Yes';
     const controlledTamperYes = isApMeds && values.controlledTamperTagged === 'Yes';
     const apBagTamperYes = isApMeds && values.apBagTamperTagged === 'Yes';
     const medsBagTamperYes = isParamedicMeds && values.medsBagTamperTagged === 'Yes';
-    const blsTamperYes = isBlsBag && values.blsTamperTagged === 'Yes';
     const emtPouchYes = isEmtMeds && values.emtPouchSealed === 'Yes';
 
     let required = !!field.required;
