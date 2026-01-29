@@ -20,6 +20,14 @@ const EDITABLE_FORMS = [
   { id: 'system48', label: 'ALS Bag' },
 ];
 
+const ROLE_LABELS = {
+  crew: 'CREW',
+  emt: 'EMT',
+  paramedic: 'PARAMEDIC',
+  ap: 'ADVANCED PARAMEDIC',
+  admin: 'ADMIN',
+};
+
 const AdminSettings = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('practitioners');
@@ -259,11 +267,11 @@ const AdminSettings = () => {
             setPractitionerForm((f) => ({ ...f, role: e.target.value }))
           }
         >
-          <option value="crew">Crew</option>
+          <option value="crew">CREW</option>
           <option value="emt">EMT</option>
-          <option value="paramedic">Paramedic</option>
-          <option value="ap">Advanced Paramedic</option>
-          <option value="admin">Admin</option>
+          <option value="paramedic">PARAMEDIC</option>
+          <option value="ap">ADVANCED PARAMEDIC</option>
+          <option value="admin">ADMIN</option>
         </select>
         <button type="submit" className="btn btn-primary" disabled={loading}>
           {loading ? 'Saving...' : 'Add Practitioner'}
@@ -287,7 +295,7 @@ const AdminSettings = () => {
                 <td>{p.id}</td>
                 <td>{p.name}</td>
                 <td>{p.pin}</td>
-                <td>{p.role || 'crew'}</td>
+                <td>{ROLE_LABELS[p.role] || 'CREW'}</td>
                 <td>
                   <button
                     type="button"

@@ -8,6 +8,7 @@ const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const PDFDocument = require('pdfkit');
 const db = require('./db');
+const storage = require('./storage');
 require('dotenv').config();
 
 const app = express();
@@ -320,14 +321,24 @@ app.get('/api/admin/forms/:formId/submissions', authenticateToken, async (req, r
   }
 });
 
-// Upload single photo
-app.post('/api/upload/:fieldName', authenticateToken, upload.single('file'), (req, res) => {
+// Upload single photo (to disk and optionally to S3 for persistence)
+app.post('/api/upload/:fieldName', authenticateToken, upload.single('file'), async (req, res) => {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' });
   }
-  res.json({ 
+  let pathOrUrl = `/uploads/${req.file.filename}`;
+  if (storage.isS3Configured()) {
+    try {
+      const buffer = fs.readFileSync(req.file.path);
+      const url = await storage.uploadToS3(buffer, req.file.originalname || req.file.filename);
+      if (url) pathOrUrl = url;
+    } catch (err) {
+      console.error('[Upload] S3 upload failed, using local path:', err.message);
+    }
+  }
+  res.json({
     filename: req.file.filename,
-    path: `/uploads/${req.file.filename}`,
+    path: pathOrUrl,
     fieldName: req.params.fieldName
   });
 });
@@ -341,11 +352,21 @@ app.post('/api/equipment-checks', authenticateToken, upload.fields([
 ]), async (req, res) => {
   const checkData = JSON.parse(req.body.data || '{}');
   const photos = {};
-  if (req.files) {
-    if (req.files.frontPhoto) photos.frontPhoto = `/uploads/${req.files.frontPhoto[0].filename}`;
-    if (req.files.nearsidePhoto) photos.nearsidePhoto = `/uploads/${req.files.nearsidePhoto[0].filename}`;
-    if (req.files.rearPhoto) photos.rearPhoto = `/uploads/${req.files.rearPhoto[0].filename}`;
-    if (req.files.offsidePhoto) photos.offsidePhoto = `/uploads/${req.files.offsidePhoto[0].filename}`;
+  const fileKeys = ['frontPhoto', 'nearsidePhoto', 'rearPhoto', 'offsidePhoto'];
+  for (const key of fileKeys) {
+    const file = req.files?.[key]?.[0];
+    if (!file) continue;
+    let pathOrUrl = `/uploads/${file.filename}`;
+    if (storage.isPersistentStorageConfigured()) {
+      try {
+        const buffer = fs.readFileSync(file.path);
+        const url = await storage.uploadPersistent(buffer, file.originalname || file.filename);
+        if (url) pathOrUrl = url;
+      } catch (e) {
+        console.error('[Equipment check] Persistent storage failed for', key, e.message);
+      }
+    }
+    photos[key] = pathOrUrl;
   }
   const newCheck = await db.addEquipmentCheck({
     ...checkData,
@@ -415,9 +436,17 @@ app.get('/api/admin/equipment-checks/:id/pdf', authenticateToken, async (req, re
     doc.fontSize(13).text('Photos', { underline: true });
     doc.moveDown(0.5);
     doc.fontSize(11);
-    Object.entries(photos).forEach(([key, pathValue]) => {
-      doc.text(`${key}: ${pathValue}`, { lineGap: 2 });
-    });
+    for (const [key, pathValue] of Object.entries(photos)) {
+      doc.text(`${key}:`, { continued: false });
+      doc.moveDown(0.25);
+      const embedded = await embedImageInPdf(doc, pathValue, 40, 512, 200);
+      if (embedded) {
+        doc.moveDown(0.3);
+      } else {
+        doc.fontSize(10).text(pathValue || '—', { lineGap: 2 });
+        doc.moveDown(0.3);
+      }
+    }
   }
 
   doc.end();
@@ -453,6 +482,59 @@ function formatPdfValue(value) {
   if (Array.isArray(value)) return value.join(', ');
   if (typeof value === 'object') return JSON.stringify(value);
   return String(value);
+}
+
+// Helper: resolve upload path to local file path; return null if not an image or file missing
+const IMAGE_EXT = /\.(jpe?g|png|gif|webp)$/i;
+function getLocalImagePath(value) {
+  if (typeof value !== 'string' || !value) return null;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith('/uploads/') && !IMAGE_EXT.test(trimmed)) return null;
+  const filename = trimmed.startsWith('/uploads/') ? trimmed.slice('/uploads/'.length) : path.basename(trimmed);
+  const localPath = path.join(__dirname, 'uploads', filename);
+  if (!fs.existsSync(localPath)) return null;
+  if (!IMAGE_EXT.test(filename)) return null;
+  return localPath;
+}
+
+// Helper: get image buffer from local path or from URL (S3/public URL)
+async function getImageBuffer(value) {
+  if (typeof value !== 'string' || !value) return null;
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  const localPath = getLocalImagePath(trimmed);
+  if (localPath) {
+    try {
+      return fs.readFileSync(localPath);
+    } catch (e) {
+      return null;
+    }
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    try {
+      const res = await fetch(trimmed, { headers: { Accept: 'image/*' } });
+      if (!res.ok) return null;
+      const ab = await res.arrayBuffer();
+      return Buffer.from(ab);
+    } catch (e) {
+      return null;
+    }
+  }
+  return null;
+}
+
+// Helper: embed image in PDF doc if path/URL resolves, else return false (async)
+async function embedImageInPdf(doc, value, margin, contentWidth, maxImageHeight = 220) {
+  const buffer = await getImageBuffer(value);
+  if (!buffer) return false;
+  try {
+    doc.image(buffer, margin, doc.y, { fit: [contentWidth, maxImageHeight], align: 'center' });
+    doc.y += maxImageHeight;
+    doc.moveDown(0.4);
+    return true;
+  } catch (err) {
+    return false;
+  }
 }
 
 // Styled form PDF: page layout constants
@@ -492,27 +574,30 @@ app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateTo
     doc.font('Helvetica').fontSize(9).fillColor('#666').text(`Submission ID: ${submission.id}  ·  Submitted: ${submission.createdAt || '-'}  ·  User ID: ${submission.createdBy ?? '-'}`);
     doc.fillColor('#000').moveDown(1.2);
 
-    snapshot.sections.forEach((section) => {
-      // Section heading: bold, clear separation
+    for (const section of snapshot.sections) {
       doc.font('Helvetica-Bold').fontSize(13).fillColor('#000').text(section.title || 'Section', { align: 'left' });
       doc.moveDown(0.6);
       doc.font('Helvetica').fontSize(10);
 
       const fields = section.fields || [];
-      fields.forEach((field) => {
+      for (const field of fields) {
         const label = field.label || field.id || '';
         const value = values[field.id];
         const displayValue = formatPdfValue(value) || '—';
 
-        // Label above the field box
-        doc.fillColor('#000').text(label, PDF_MARGIN, doc.y, { continued: false });
+        doc.fillColor('#000').font('Helvetica').fontSize(10).text(label, PDF_MARGIN, doc.y, { continued: false });
         doc.moveDown(0.25);
+
+        const embedded = await embedImageInPdf(doc, displayValue, PDF_MARGIN, PDF_CONTENT_WIDTH);
+        if (embedded) {
+          doc.moveDown(0.3);
+          continue;
+        }
 
         const boxTop = doc.y;
         const textHeight = Math.max(PDF_FIELD_BOX_HEIGHT - PDF_FIELD_PADDING * 2, doc.heightOfString(displayValue, { width: PDF_CONTENT_WIDTH - PDF_FIELD_PADDING * 2 }));
         const boxHeight = textHeight + PDF_FIELD_PADDING * 2;
 
-        // Value box: light gray fill, light border (form-field look)
         doc.rect(PDF_MARGIN, boxTop, PDF_CONTENT_WIDTH, boxHeight).fillAndStroke('#f5f5f5', '#e0e0e0');
 
         doc.fillColor('#000').font('Helvetica').fontSize(10).text(displayValue, PDF_MARGIN + PDF_FIELD_PADDING, boxTop + PDF_FIELD_PADDING, {
@@ -522,10 +607,10 @@ app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateTo
 
         doc.y = boxTop + boxHeight;
         doc.moveDown(0.5);
-      });
+      }
 
       doc.moveDown(0.6);
-    });
+    }
   } else {
     // Fallback for submissions without formSnapshot (legacy): raw key-value list
     doc.font('Helvetica-Bold').fontSize(16).text('AmbuCheck – Completed Form', { align: 'left' });
