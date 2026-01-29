@@ -526,11 +526,21 @@ async function getImageBuffer(value) {
   return null;
 }
 
+// Helper: ensure at least requiredHeight points fit on current page; if not, add a new page
+function ensureSpaceForImage(doc, requiredHeight, margin) {
+  const pageBottom = doc.page.height - (doc.page.margins?.bottom ?? margin);
+  if (doc.y + requiredHeight > pageBottom) {
+    doc.addPage();
+  }
+}
+
 // Helper: embed image in PDF doc if path/URL resolves, else return false (async)
 async function embedImageInPdf(doc, value, margin, contentWidth, maxImageHeight = 220) {
   const buffer = await getImageBuffer(value);
   if (!buffer) return false;
   try {
+    const spaceNeeded = maxImageHeight + 20;
+    ensureSpaceForImage(doc, spaceNeeded, margin);
     doc.image(buffer, margin, doc.y, { fit: [contentWidth, maxImageHeight], align: 'center' });
     doc.y += maxImageHeight;
     doc.moveDown(0.4);
