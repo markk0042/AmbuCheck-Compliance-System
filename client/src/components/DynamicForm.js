@@ -264,8 +264,16 @@ const DynamicForm = () => {
 
     setSubmitting(true);
     try {
+      const formSnapshot = {
+        title: formDef.title,
+        sections: formDef.sections.map((s) => ({
+          title: s.title,
+          fields: s.fields.map((f) => ({ id: f.id, label: f.label })),
+        })),
+      };
       await api.post(`/api/forms/${formDef.id}/submissions`, {
         values,
+        formSnapshot,
       });
       setSuccess('Form submitted successfully.');
       // Clear but keep page

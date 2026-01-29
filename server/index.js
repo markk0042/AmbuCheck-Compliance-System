@@ -484,7 +484,7 @@ app.get('/api/admin/equipment-checks/:id/pdf', authenticateToken, (req, res) => 
 // Generic form submissions (for Driver Checklist, etc.)
 app.post('/api/forms/:formId/submissions', authenticateToken, (req, res) => {
   const { formId } = req.params;
-  const { values } = req.body || {};
+  const { values, formSnapshot } = req.body || {};
 
   if (!values || typeof values !== 'object') {
     return res.status(400).json({ error: 'Invalid form data' });
@@ -497,6 +497,7 @@ app.post('/api/forms/:formId/submissions', authenticateToken, (req, res) => {
     id: submissions.length > 0 ? Math.max(...submissions.map(s => s.id)) + 1 : 1,
     formId,
     values,
+    formSnapshot: formSnapshot && typeof formSnapshot === 'object' ? formSnapshot : undefined,
     createdAt: new Date().toISOString(),
     createdBy: req.user.id,
   };
@@ -507,7 +508,16 @@ app.post('/api/forms/:formId/submissions', authenticateToken, (req, res) => {
   res.json(newSubmission);
 });
 
-// Admin-only: generate PDF for a generic form submission
+// Helper: format a value for PDF display (avoid huge strings, handle arrays/objects)
+function formatPdfValue(value) {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string' || typeof value === 'number') return String(value);
+  if (Array.isArray(value)) return value.join(', ');
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
+}
+
+// Admin-only: generate PDF for a generic form submission (1:1 form layout when formSnapshot exists)
 app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateToken, (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
@@ -523,7 +533,7 @@ app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateTo
     return res.status(404).json({ error: 'Submission not found' });
   }
 
-  const doc = new PDFDocument({ margin: 40 });
+  const doc = new PDFDocument({ margin: 50 });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader(
     'Content-Disposition',
@@ -531,24 +541,47 @@ app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateTo
   );
   doc.pipe(res);
 
-  doc.fontSize(16).text('AmbuCheck – Completed Form', { align: 'left' });
-  doc.moveDown(0.5);
-  doc.fontSize(13).text(`Form: ${formId}`);
-  doc.fontSize(11).text(`Submission ID: ${submission.id}`);
-  doc.text(`Submitted at: ${submission.createdAt || '-'}`);
-  doc.text(`Submitted by (user id): ${submission.createdBy || '-'}`);
-  doc.moveDown();
-
-  doc.fontSize(13).text('Answers', { underline: true });
-  doc.moveDown(0.5);
-  doc.fontSize(11);
-
   const values = submission.values || {};
-  Object.entries(values).forEach(([key, value]) => {
-    const safeValue =
-      typeof value === 'object' ? JSON.stringify(value) : String(value ?? '');
-    doc.text(`${key}: ${safeValue}`, { lineGap: 2 });
-  });
+  const snapshot = submission.formSnapshot;
+
+  if (snapshot && snapshot.title && Array.isArray(snapshot.sections) && snapshot.sections.length > 0) {
+    // 1:1 form layout: form title, then each section with its fields in order
+    doc.fontSize(18).text(snapshot.title, { align: 'left' });
+    doc.moveDown(0.3);
+    doc.fontSize(10).fillColor('#666').text(`Submission ID: ${submission.id}  |  Submitted: ${submission.createdAt || '-'}  |  User ID: ${submission.createdBy ?? '-'}`);
+    doc.fillColor('#000').moveDown(1);
+
+    snapshot.sections.forEach((section) => {
+      doc.fontSize(12).text(section.title || 'Section', { underline: true });
+      doc.moveDown(0.4);
+      doc.fontSize(10);
+
+      const fields = section.fields || [];
+      fields.forEach((field) => {
+        const label = field.label || field.id || '';
+        const value = values[field.id];
+        const displayValue = formatPdfValue(value);
+        doc.text(`${label}: ${displayValue || '—'}`, { lineGap: 3 });
+      });
+
+      doc.moveDown(0.8);
+    });
+  } else {
+    // Fallback for submissions without formSnapshot (legacy): raw key-value list
+    doc.fontSize(16).text('AmbuCheck – Completed Form', { align: 'left' });
+    doc.moveDown(0.5);
+    doc.fontSize(13).text(`Form: ${formId}`);
+    doc.fontSize(11).text(`Submission ID: ${submission.id}`);
+    doc.text(`Submitted at: ${submission.createdAt || '-'}`);
+    doc.text(`Submitted by (user id): ${submission.createdBy || '-'}`);
+    doc.moveDown();
+    doc.fontSize(13).text('Answers', { underline: true });
+    doc.moveDown(0.5);
+    doc.fontSize(11);
+    Object.entries(values).forEach(([key, value]) => {
+      doc.text(`${key}: ${formatPdfValue(value)}`, { lineGap: 2 });
+    });
+  }
 
   doc.end();
 });
