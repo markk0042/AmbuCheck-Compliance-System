@@ -121,7 +121,10 @@ const writeJSON = (filename, data) => {
   fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
 };
 
-// Initialize default admin user if not exists
+// Hash for standard test user password "1user" (bcrypt, 10 rounds)
+const USER1_PASSWORD_HASH = '$2a$10$CeVEXdq1SU6MT7CaNwrh9uBM2HfSERgJ7MalRtCz1gB0K8DtZBnFG';
+
+// Initialize default admin user if not exists; ensure user1 exists for testing.
 const initializeUsers = () => {
   let users = readJSON('users.json');
 
@@ -138,10 +141,10 @@ const initializeUsers = () => {
       },
       {
         id: 2,
-        username: 'markkelly',
-        password: bcrypt.hashSync('user123', 10),
+        username: 'user1',
+        password: USER1_PASSWORD_HASH,
         role: 'user',
-        name: 'Mark Kelly'
+        name: 'Standard User'
       }
     ];
     writeJSON('users.json', defaultUsers);
@@ -161,6 +164,19 @@ const initializeUsers = () => {
     } catch (e) {
       // If comparison fails for any reason, leave users untouched.
     }
+  }
+
+  // Ensure standard test user "user1" exists (e.g. after deploy where users.json had only admin).
+  if (!users.some(u => u.username === 'user1')) {
+    const nextId = Math.max(...users.map(u => u.id), 0) + 1;
+    users.push({
+      id: nextId,
+      username: 'user1',
+      password: USER1_PASSWORD_HASH,
+      role: 'user',
+      name: 'Standard User'
+    });
+    writeJSON('users.json', users);
   }
 };
 initializeUsers();
@@ -239,16 +255,22 @@ app.get('/api/health', (req, res) => {
 
 // Authentication
 app.post('/api/login', async (req, res) => {
-  const { username, password, pin } = req.body;
+  const { username, password, pin } = req.body || {};
+  if (!username || !password) {
+    console.log('[Login] 400: missing username or password in body');
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
   const users = readJSON('users.json');
   const user = users.find(u => u.username === username);
 
   if (!user) {
+    console.log('[Login] 401: user not found:', username);
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
   const validPassword = await bcrypt.compare(password, user.password);
   if (!validPassword) {
+    console.log('[Login] 401: invalid password for user:', user.username);
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
