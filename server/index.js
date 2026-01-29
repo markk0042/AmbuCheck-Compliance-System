@@ -599,8 +599,13 @@ app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateTo
         const label = field.label || field.id || '';
         const value = values[field.id];
         const displayValue = formatPdfValue(value) || '—';
+        const isLikelyImage = typeof displayValue === 'string' && (displayValue.startsWith('http') || displayValue.startsWith('/'));
 
-        doc.fillColor('#000').font('Helvetica').fontSize(10).text(label, PDF_MARGIN, doc.y, { continued: false });
+        if (isLikelyImage) {
+          doc.fillColor('#000').font('Helvetica-Bold').fontSize(11).text(label, PDF_MARGIN, doc.y, { continued: false });
+        } else {
+          doc.fillColor('#000').font('Helvetica').fontSize(10).text(label, PDF_MARGIN, doc.y, { continued: false });
+        }
         doc.moveDown(0.25);
 
         const embedded = await embedImageInPdf(doc, displayValue, PDF_MARGIN, PDF_CONTENT_WIDTH);

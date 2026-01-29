@@ -22,6 +22,12 @@ const formatDateTime = (isoString) => {
   return d.toLocaleString();
 };
 
+const humanizeKey = (key) =>
+  key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase()).trim();
+
+const isImageValue = (v) =>
+  typeof v === 'string' && (v.startsWith('http') || v.startsWith('/'));
+
 const CompletedForms = () => {
   const { user } = useAuth();
   const [activeCategory, setActiveCategory] = useState('vdiStart');
@@ -29,6 +35,7 @@ const CompletedForms = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('');
+  const [viewRow, setViewRow] = useState(null);
 
   const loadData = useCallback(
     async (categoryId) => {
@@ -221,7 +228,7 @@ const CompletedForms = () => {
                     <th>Vehicle / Identifier</th>
                     <th>Practitioner</th>
                     <th>Submitted At</th>
-                    <th>PDF</th>
+                    <th>Actions</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -232,13 +239,22 @@ const CompletedForms = () => {
                       <td>{row.practitioner || '-'}</td>
                       <td>{formatDateTime(row.createdAt)}</td>
                       <td>
-                        <button
-                          type="button"
-                          className="btn btn-secondary small"
-                          onClick={() => handleDownloadPdf(row)}
-                        >
-                          Download PDF
-                        </button>
+                        <div className="completed-forms-actions">
+                          <button
+                            type="button"
+                            className="btn btn-secondary small"
+                            onClick={() => setViewRow(row)}
+                          >
+                            View
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-secondary small"
+                            onClick={() => handleDownloadPdf(row)}
+                          >
+                            Download PDF
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -248,6 +264,132 @@ const CompletedForms = () => {
           )}
         </section>
       </div>
+
+      {viewRow && (
+        <div className="completed-forms-view-overlay" onClick={() => setViewRow(null)} role="presentation">
+          <div className="completed-forms-view-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="completed-forms-view-header">
+              <h3>
+                {activeCategory === 'vdiStart'
+                  ? 'VDI – Start of Shift'
+                  : activeConfig?.label || 'Form'}
+                {' '}
+                (ID {viewRow.id})
+              </h3>
+              <button type="button" className="completed-forms-view-close" onClick={() => setViewRow(null)} aria-label="Close">
+                ×
+              </button>
+            </div>
+            <div className="completed-forms-view-body">
+              {activeCategory === 'vdiStart' ? (
+                (() => {
+                  const raw = viewRow.raw || {};
+                  const { photos, id: _id, createdAt, createdBy, ...rest } = raw;
+                  return (
+                    <>
+                      <section className="completed-forms-view-section">
+                        <h4>Details</h4>
+                        <dl>
+                          <dt>Submitted at</dt>
+                          <dd>{formatDateTime(raw.createdAt)}</dd>
+                          <dt>Staff name</dt>
+                          <dd>{raw.staffName || '—'}</dd>
+                          <dt>Registration</dt>
+                          <dd>{raw.registration || '—'}</dd>
+                          <dt>Vehicle call sign</dt>
+                          <dd>{raw.vehicleCallsign || '—'}</dd>
+                        </dl>
+                      </section>
+                      <section className="completed-forms-view-section">
+                        <h4>Checklist values</h4>
+                        <dl>
+                          {Object.entries(rest).map(([k, v]) => (
+                            <React.Fragment key={k}>
+                              <dt>{humanizeKey(k)}</dt>
+                              <dd>{typeof v === 'object' ? JSON.stringify(v) : String(v ?? '—')}</dd>
+                            </React.Fragment>
+                          ))}
+                        </dl>
+                      </section>
+                      {photos && Object.keys(photos).length > 0 && (
+                        <section className="completed-forms-view-section">
+                          <h4>Photos</h4>
+                          <dl>
+                            {Object.entries(photos).map(([key, pathOrUrl]) => (
+                              <React.Fragment key={key}>
+                                <dt>{humanizeKey(key)}</dt>
+                                <dd>
+                                  {isImageValue(pathOrUrl) ? (
+                                    <a href={pathOrUrl} target="_blank" rel="noopener noreferrer">View photo</a>
+                                  ) : (
+                                    pathOrUrl || '—'
+                                  )}
+                                </dd>
+                              </React.Fragment>
+                            ))}
+                          </dl>
+                        </section>
+                      )}
+                    </>
+                  );
+                })()
+              ) : (
+                (() => {
+                  const raw = viewRow.raw || {};
+                  const snapshot = raw.formSnapshot;
+                  const formValues = raw.values || {};
+                  if (snapshot && snapshot.title && Array.isArray(snapshot.sections)) {
+                    return (
+                      <>
+                        <p className="completed-forms-view-meta">
+                          Submitted: {formatDateTime(raw.createdAt)} · User ID: {raw.createdBy ?? '—'}
+                        </p>
+                        {snapshot.sections.map((section) => (
+                          <section key={section.id} className="completed-forms-view-section">
+                            <h4>{section.title || 'Section'}</h4>
+                            <dl>
+                              {(section.fields || []).map((field) => {
+                                const label = field.label || field.id || '';
+                                const val = formValues[field.id];
+                                const display = val === undefined || val === null ? '—' : String(val);
+                                return (
+                                  <React.Fragment key={field.id}>
+                                    <dt>{label}</dt>
+                                    <dd>
+                                      {isImageValue(val) ? (
+                                        <a href={val} target="_blank" rel="noopener noreferrer">View photo</a>
+                                      ) : (
+                                        display
+                                      )}
+                                    </dd>
+                                  </React.Fragment>
+                                );
+                              })}
+                            </dl>
+                          </section>
+                        ))}
+                      </>
+                    );
+                  }
+                  return (
+                    <section className="completed-forms-view-section">
+                      <h4>Answers</h4>
+                      <dl>
+                        {Object.entries(formValues).map(([k, v]) => (
+                          <React.Fragment key={k}>
+                            <dt>{humanizeKey(k)}</dt>
+                            <dd>{typeof v === 'object' ? JSON.stringify(v) : String(v ?? '—')}</dd>
+                          </React.Fragment>
+                        ))}
+                      </dl>
+                    </section>
+                  );
+                })()
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
