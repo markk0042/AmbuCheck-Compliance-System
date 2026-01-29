@@ -20,6 +20,11 @@ const USE_S3 = Boolean(
   BUCKET && process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY
 );
 
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const SUPABASE_BUCKET = process.env.SUPABASE_STORAGE_BUCKET || 'uploads';
+const USE_SUPABASE = Boolean(SUPABASE_URL && SUPABASE_KEY && SUPABASE_BUCKET);
+
 let s3Client = null;
 
 function getClient() {
