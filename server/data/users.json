@@ -5,12 +5,5 @@
     "password": "$2a$10$aRL35i9pahHH9aXu5c3pGelCAAzycQedcLcKrl7uopfrHzutEX7h6",
     "role": "admin",
     "name": "Admin User"
-  },
-  {
-    "id": 2,
-    "username": "markkelly",
-    "password": "$2a$10$.3IPNLLFTal7.GFncMG29.5rlkKVJS8KRH4W7srW3JGGJolaTJ12S",
-    "role": "user",
-    "name": "Mark Kelly"
   }
 ]

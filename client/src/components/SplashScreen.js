@@ -29,6 +29,10 @@ const SplashScreen = ({ onComplete }) => {
 
   return (
     <div className="splash-screen">
+      {/* Background layer for subtle parallax movement */}
+      <div className={`splash-bg ${animationStage}`} />
+
+      {/* Foreground logo with 3D-style shine during pause */}
       <div className={`splash-logo ${animationStage}`}>
         <img src="/app-logo.jpg" alt="AmbuCheck Logo" />
       </div>

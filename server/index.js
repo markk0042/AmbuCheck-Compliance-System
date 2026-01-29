@@ -15,6 +15,10 @@ const PORT = process.env.PORT || 5001;
 // Changing this value will immediately invalidate all existing tokens.
 const JWT_SECRET = process.env.JWT_SECRET || 'ambucheck_jwt_secret_2026_01_28';
 
+// Default admin password (used for initialisation and one-time migration).
+// In production, prefer setting ADMIN_DEFAULT_PASSWORD as an environment variable.
+const ADMIN_DEFAULT_PASSWORD = process.env.ADMIN_DEFAULT_PASSWORD || 'admin1994';
+
 // Middleware - CORS must be first
 const allowedOrigins = [
   'http://localhost:3000',
@@ -118,14 +122,16 @@ const writeJSON = (filename, data) => {
 
 // Initialize default admin user if not exists
 const initializeUsers = () => {
-  const users = readJSON('users.json');
+  let users = readJSON('users.json');
+
+  // First-time initialisation: create default users file.
   if (users.length === 0) {
-    const hashedPassword = bcrypt.hashSync('admin123', 10);
+    const adminHashedPassword = bcrypt.hashSync(ADMIN_DEFAULT_PASSWORD, 10);
     const defaultUsers = [
       {
         id: 1,
         username: 'admin',
-        password: hashedPassword,
+        password: adminHashedPassword,
         role: 'admin',
         name: 'Admin User'
       },
@@ -138,6 +144,22 @@ const initializeUsers = () => {
       }
     ];
     writeJSON('users.json', defaultUsers);
+    return;
+  }
+
+  // One-time migration: if existing admin user is still using the old default password,
+  // update it to the new default ADMIN_DEFAULT_PASSWORD.
+  const adminIndex = users.findIndex(u => u.username === 'admin');
+  if (adminIndex !== -1) {
+    try {
+      const isOldDefault = bcrypt.compareSync('admin123', users[adminIndex].password || '');
+      if (isOldDefault) {
+        users[adminIndex].password = bcrypt.hashSync(ADMIN_DEFAULT_PASSWORD, 10);
+        writeJSON('users.json', users);
+      }
+    } catch (e) {
+      // If comparison fails for any reason, leave users untouched.
+    }
   }
 };
 initializeUsers();
