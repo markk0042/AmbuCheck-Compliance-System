@@ -254,6 +254,13 @@ const CompletedForms = () => {
                           >
                             Download PDF
                           </button>
+                          <button
+                            type="button"
+                            className="btn btn-danger small"
+                            onClick={() => handleDelete(row)}
+                          >
+                            Delete
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -276,9 +283,18 @@ const CompletedForms = () => {
                 {' '}
                 (ID {viewRow.id})
               </h3>
-              <button type="button" className="completed-forms-view-close" onClick={() => setViewRow(null)} aria-label="Close">
-                ×
-              </button>
+              <div className="completed-forms-view-header-actions">
+                <button
+                  type="button"
+                  className="btn btn-danger small"
+                  onClick={() => handleDelete(viewRow)}
+                >
+                  Delete
+                </button>
+                <button type="button" className="completed-forms-view-close" onClick={() => setViewRow(null)} aria-label="Close">
+                  ×
+                </button>
+              </div>
             </div>
             <div className="completed-forms-view-body">
               {activeCategory === 'vdiStart' ? (

@@ -161,12 +161,21 @@
   padding: 14px 16px;
   border-bottom: 1px solid #e5e7eb;
   flex-shrink: 0;
+  gap: 12px;
 }
 
 .completed-forms-view-header h3 {
   margin: 0;
   font-size: 16px;
   font-weight: 600;
+  flex: 1;
+  min-width: 0;
+}
+
+.completed-forms-view-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .completed-forms-view-close {

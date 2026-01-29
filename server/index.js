@@ -651,6 +651,19 @@ app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateTo
   doc.end();
 });
 
+// Admin-only: delete a form submission
+app.delete('/api/admin/forms/:formId/submissions/:submissionId', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  const { formId, submissionId } = req.params;
+  const deleted = await db.deleteFormSubmission(formId, submissionId);
+  if (!deleted) {
+    return res.status(404).json({ error: 'Submission not found' });
+  }
+  res.json({ ok: true });
+});
+
 // Form configuration overrides (admin-editable)
 // All authenticated users can read effective config via /api/forms/config/:formId
 // Admins can create/update overrides via /api/admin/forms/config/:formId

@@ -259,6 +259,18 @@ async function getEquipmentCheckById(id) {
   return checks.find(c => c.id === parseInt(id, 10)) || null;
 }
 
+async function deleteEquipmentCheck(id) {
+  if (useDb) {
+    const r = await pool.query('DELETE FROM equipment_checks WHERE id = $1', [id]);
+    return r.rowCount > 0;
+  }
+  const checks = readJSON('equipment-checks.json', []);
+  const filtered = checks.filter(c => c.id !== parseInt(id, 10));
+  if (filtered.length === checks.length) return false;
+  writeJSON('equipment-checks.json', filtered);
+  return true;
+}
+
 async function getFormConfigOverrides() {
   if (useDb) {
     const r = await pool.query('SELECT form_id, config FROM form_config_overrides');
@@ -397,9 +409,11 @@ module.exports = {
   getFormSubmissions,
   addFormSubmission,
   getFormSubmissionById,
+  deleteFormSubmission,
   getEquipmentChecks,
   addEquipmentCheck,
   getEquipmentCheckById,
+  deleteEquipmentCheck,
   getFormConfigOverrides,
   setFormConfigOverride,
   getPractitioners,
