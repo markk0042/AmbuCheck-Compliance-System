@@ -73,8 +73,9 @@ app.use(cors({
 // Handle preflight requests
 app.options('*', cors());
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+// Allow larger JSON payloads for form submissions (formSnapshot can be big)
+app.use(bodyParser.json({ limit: '2mb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '2mb' }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // Ensure data directory exists
@@ -309,8 +310,14 @@ app.get('/api/admin/forms/:formId/submissions', authenticateToken, async (req, r
   }
 
   const { formId } = req.params;
-  const submissions = await db.getFormSubmissions(formId);
-  res.json(submissions);
+  try {
+    const submissions = await db.getFormSubmissions(formId);
+    console.log('[Form] Listed submissions:', formId, 'count:', submissions.length);
+    res.json(submissions);
+  } catch (err) {
+    console.error('[Form] Failed to list submissions:', formId, err.message);
+    res.status(500).json({ error: 'Failed to load submissions' });
+  }
 });
 
 // Upload single photo
@@ -425,13 +432,18 @@ app.post('/api/forms/:formId/submissions', authenticateToken, async (req, res) =
     return res.status(400).json({ error: 'Invalid form data' });
   }
 
-  const newSubmission = await db.addFormSubmission(formId, {
-    values,
-    formSnapshot: formSnapshot && typeof formSnapshot === 'object' ? formSnapshot : undefined,
-    createdBy: req.user.id,
-  });
-
-  res.json(newSubmission);
+  try {
+    const newSubmission = await db.addFormSubmission(formId, {
+      values,
+      formSnapshot: formSnapshot && typeof formSnapshot === 'object' ? formSnapshot : undefined,
+      createdBy: req.user.id,
+    });
+    console.log('[Form] Saved submission:', formId, 'id:', newSubmission.id, 'user:', req.user.id);
+    res.json(newSubmission);
+  } catch (err) {
+    console.error('[Form] Failed to save submission:', formId, err.message);
+    res.status(500).json({ error: 'Failed to save form submission. Please try again.' });
+  }
 });
 
 // Helper: format a value for PDF display (avoid huge strings, handle arrays/objects)
