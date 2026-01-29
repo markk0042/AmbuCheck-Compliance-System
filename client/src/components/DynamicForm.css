@@ -118,8 +118,7 @@
 }
 
 /* Ensure "Other" textareas sit under their related dropdowns on key forms */
-.form-paramedicMeds .dynamic-form-fields,
-.form-system48 .dynamic-form-fields {
+.form-paramedicMeds .dynamic-form-fields {
   grid-template-columns: 1fr;
 }
 

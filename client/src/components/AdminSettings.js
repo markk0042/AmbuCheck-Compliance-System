@@ -612,22 +612,10 @@ const AdminSettings = () => {
         </div>
       ) : (
         <p className="admin-settings-help">
-          The current form configuration could not be parsed. Fix any JSON
-          errors below to use the visual editor.
+          The current form configuration could not be parsed. Reload the form
+          or contact support.
         </p>
       )}
-
-      <p className="admin-settings-help" style={{ marginTop: 12 }}>
-        Advanced JSON view (for complex edits). Changes here will also update
-        what the visual editor uses.
-      </p>
-      <textarea
-        className="admin-forms-textarea"
-        value={formConfigText}
-        onChange={(e) => setFormConfigText(e.target.value)}
-        rows={18}
-        spellCheck={false}
-      />
     </div>
   );
 

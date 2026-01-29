@@ -221,7 +221,6 @@ const CompletedForms = () => {
                     <th>Vehicle / Identifier</th>
                     <th>Practitioner</th>
                     <th>Submitted At</th>
-                    <th>Details</th>
                     <th>PDF</th>
                   </tr>
                 </thead>
@@ -232,14 +231,6 @@ const CompletedForms = () => {
                       <td>{row.identifier || '-'}</td>
                       <td>{row.practitioner || '-'}</td>
                       <td>{formatDateTime(row.createdAt)}</td>
-                      <td>
-                        <details>
-                          <summary>View</summary>
-                          <pre>
-                            {JSON.stringify(row.raw, null, 2)}
-                          </pre>
-                        </details>
-                      </td>
                       <td>
                         <button
                           type="button"

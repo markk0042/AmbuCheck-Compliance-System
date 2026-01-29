@@ -443,7 +443,13 @@ function formatPdfValue(value) {
   return String(value);
 }
 
-// Admin-only: generate PDF for a generic form submission (1:1 form layout when formSnapshot exists)
+// Styled form PDF: page layout constants
+const PDF_MARGIN = 50;
+const PDF_CONTENT_WIDTH = 512; // letter width 612 - 2*margin
+const PDF_FIELD_BOX_HEIGHT = 22;
+const PDF_FIELD_PADDING = 5;
+
+// Admin-only: generate PDF for a generic form submission (styled form layout when formSnapshot exists)
 app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
@@ -456,7 +462,7 @@ app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateTo
     return res.status(404).json({ error: 'Submission not found' });
   }
 
-  const doc = new PDFDocument({ margin: 50 });
+  const doc = new PDFDocument({ margin: PDF_MARGIN });
   res.setHeader('Content-Type', 'application/pdf');
   res.setHeader(
     'Content-Disposition',
@@ -468,39 +474,58 @@ app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateTo
   const snapshot = submission.formSnapshot;
 
   if (snapshot && snapshot.title && Array.isArray(snapshot.sections) && snapshot.sections.length > 0) {
-    // 1:1 form layout: form title, then each section with its fields in order
-    doc.fontSize(18).text(snapshot.title, { align: 'left' });
-    doc.moveDown(0.3);
-    doc.fontSize(10).fillColor('#666').text(`Submission ID: ${submission.id}  |  Submitted: ${submission.createdAt || '-'}  |  User ID: ${submission.createdBy ?? '-'}`);
-    doc.fillColor('#000').moveDown(1);
+    // Styled form: bold title, section headings, label + value-in-box per field
+    doc.font('Helvetica-Bold').fontSize(20).fillColor('#000').text(snapshot.title, { align: 'left' });
+    doc.moveDown(0.4);
+    doc.font('Helvetica').fontSize(9).fillColor('#666').text(`Submission ID: ${submission.id}  ·  Submitted: ${submission.createdAt || '-'}  ·  User ID: ${submission.createdBy ?? '-'}`);
+    doc.fillColor('#000').moveDown(1.2);
 
     snapshot.sections.forEach((section) => {
-      doc.fontSize(12).text(section.title || 'Section', { underline: true });
-      doc.moveDown(0.4);
-      doc.fontSize(10);
+      // Section heading: bold, clear separation
+      doc.font('Helvetica-Bold').fontSize(13).fillColor('#000').text(section.title || 'Section', { align: 'left' });
+      doc.moveDown(0.6);
+      doc.font('Helvetica').fontSize(10);
 
       const fields = section.fields || [];
       fields.forEach((field) => {
         const label = field.label || field.id || '';
         const value = values[field.id];
-        const displayValue = formatPdfValue(value);
-        doc.text(`${label}: ${displayValue || '—'}`, { lineGap: 3 });
+        const displayValue = formatPdfValue(value) || '—';
+
+        // Label above the field box
+        doc.fillColor('#000').text(label, PDF_MARGIN, doc.y, { continued: false });
+        doc.moveDown(0.25);
+
+        const boxTop = doc.y;
+        const textHeight = Math.max(PDF_FIELD_BOX_HEIGHT - PDF_FIELD_PADDING * 2, doc.heightOfString(displayValue, { width: PDF_CONTENT_WIDTH - PDF_FIELD_PADDING * 2 }));
+        const boxHeight = textHeight + PDF_FIELD_PADDING * 2;
+
+        // Value box: light gray fill, light border (form-field look)
+        doc.rect(PDF_MARGIN, boxTop, PDF_CONTENT_WIDTH, boxHeight).fillAndStroke('#f5f5f5', '#e0e0e0');
+
+        doc.fillColor('#000').font('Helvetica').fontSize(10).text(displayValue, PDF_MARGIN + PDF_FIELD_PADDING, boxTop + PDF_FIELD_PADDING, {
+          width: PDF_CONTENT_WIDTH - PDF_FIELD_PADDING * 2,
+          align: 'left',
+        });
+
+        doc.y = boxTop + boxHeight;
+        doc.moveDown(0.5);
       });
 
-      doc.moveDown(0.8);
+      doc.moveDown(0.6);
     });
   } else {
     // Fallback for submissions without formSnapshot (legacy): raw key-value list
-    doc.fontSize(16).text('AmbuCheck – Completed Form', { align: 'left' });
+    doc.font('Helvetica-Bold').fontSize(16).text('AmbuCheck – Completed Form', { align: 'left' });
     doc.moveDown(0.5);
-    doc.fontSize(13).text(`Form: ${formId}`);
-    doc.fontSize(11).text(`Submission ID: ${submission.id}`);
+    doc.font('Helvetica').fontSize(11).text(`Form: ${formId}`);
+    doc.text(`Submission ID: ${submission.id}`);
     doc.text(`Submitted at: ${submission.createdAt || '-'}`);
     doc.text(`Submitted by (user id): ${submission.createdBy || '-'}`);
     doc.moveDown();
-    doc.fontSize(13).text('Answers', { underline: true });
+    doc.font('Helvetica-Bold').fontSize(12).text('Answers', { underline: true });
     doc.moveDown(0.5);
-    doc.fontSize(11);
+    doc.font('Helvetica').fontSize(10);
     Object.entries(values).forEach(([key, value]) => {
       doc.text(`${key}: ${formatPdfValue(value)}`, { lineGap: 2 });
     });
