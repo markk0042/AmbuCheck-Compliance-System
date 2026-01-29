@@ -7,6 +7,12 @@ const CATEGORIES = [
   { id: 'vdiStart', label: 'VDI – Start of Shift' },
   { id: 'shiftEndVdi', label: 'VDI – End of Shift' },
   { id: 'vehicleIr1', label: 'Vehicle IR1 – Incident Reports' },
+  { id: 'monitorCheck', label: 'Ambulance Monitor / AED Checklist' },
+  { id: 'blsBagUpdated', label: 'BLS Bag' },
+  { id: 'emtMeds', label: 'EMT Medications' },
+  { id: 'paramedicMeds', label: 'Paramedic Meds' },
+  { id: 'system48', label: 'ALS Bag' },
+  { id: 'apMeds', label: 'Advanced Para Meds' },
 ];
 
 const formatDateTime = (isoString) => {
@@ -37,14 +43,9 @@ const CompletedForms = () => {
         if (categoryId === 'vdiStart') {
           // VDI – Start of Shift uses the equipment-checks endpoint
           response = await api.get('/api/equipment-checks');
-        } else if (categoryId === 'shiftEndVdi') {
-          response = await api.get('/api/admin/forms/shiftEndVdi/submissions');
-        } else if (categoryId === 'vehicleIr1') {
-          response = await api.get('/api/admin/forms/vehicleIr1/submissions');
         } else {
-          setItems([]);
-          setLoading(false);
-          return;
+          // All other categories use generic form submissions (shiftEndVdi, vehicleIr1, monitorCheck, etc.)
+          response = await api.get(`/api/admin/forms/${categoryId}/submissions`);
         }
 
         const raw = Array.isArray(response.data)
@@ -133,10 +134,9 @@ const CompletedForms = () => {
       let url;
       if (activeCategory === 'vdiStart') {
         url = `/api/admin/equipment-checks/${row.id}/pdf`;
-      } else if (activeCategory === 'shiftEndVdi' || activeCategory === 'vehicleIr1') {
-        url = `/api/admin/forms/${activeCategory}/submissions/${row.id}/pdf`;
       } else {
-        return;
+        // All form-based categories (shiftEndVdi, vehicleIr1, monitorCheck, blsBagUpdated, etc.)
+        url = `/api/admin/forms/${activeCategory}/submissions/${row.id}/pdf`;
       }
 
       const response = await api.get(url, { responseType: 'blob' });
