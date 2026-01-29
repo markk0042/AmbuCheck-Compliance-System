@@ -10,7 +10,10 @@ require('dotenv').config();
 
 const app = express();
 const PORT = process.env.PORT || 5001;
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+// JWT secret used to sign authentication tokens.
+// For production, ALWAYS set process.env.JWT_SECRET in your hosting provider.
+// Changing this value will immediately invalidate all existing tokens.
+const JWT_SECRET = process.env.JWT_SECRET || 'ambucheck_jwt_secret_2026_01_28';
 
 // Middleware - CORS must be first
 const allowedOrigins = [

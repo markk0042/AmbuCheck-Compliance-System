@@ -75,10 +75,6 @@ const Login = () => {
             {loading ? 'Logging in...' : 'Login'}
           </button>
         </form>
-        <div className="login-info">
-          <p><strong>Demo Credentials:</strong></p>
-          <p>Admin: username: admin, password: admin123</p>
-        </div>
       </div>
     </div>
   );
