@@ -15,6 +15,7 @@ const DynamicForm = () => {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [formKey, setFormKey] = useState(0); // remount form after submit so file inputs clear
 
   // Load any server-side form config overrides and initialise auto fields
   useEffect(() => {
@@ -257,10 +258,63 @@ const DynamicForm = () => {
     }
   };
 
+  // Returns true if this field is required (same logic as red asterisk in the UI).
+  const isFieldRequired = (section, field) => {
+    const isSystem48 = formDef.id === 'system48';
+    const isApMeds = formDef.id === 'apMeds';
+    const isParamedicMeds = formDef.id === 'paramedicMeds';
+    const isBlsBag = formDef.id === 'blsBagUpdated';
+    const isEmtMeds = formDef.id === 'emtMeds';
+    const tamperTaggedYes = isSystem48 && values.tamperSealTagged === 'Yes';
+    const controlledTamperYes = isApMeds && values.controlledTamperTagged === 'Yes';
+    const apBagTamperYes = isApMeds && values.apBagTamperTagged === 'Yes';
+    const medsBagTamperYes = isParamedicMeds && values.medsBagTamperTagged === 'Yes';
+    const blsTamperYes = isBlsBag && values.blsTamperTagged === 'Yes';
+    const emtPouchYes = isEmtMeds && values.emtPouchSealed === 'Yes';
+
+    let required = !!field.required;
+    if (isSystem48 && tamperTaggedYes && field.id !== 'tamperSealTagged') required = false;
+    if (isParamedicMeds && medsBagTamperYes && section.id === 'paramedicMeds-details' && field.id !== 'medsBagTamperTagged') {
+      required = ['pin', 'controlledPouchNumber', 'completedAt', 'email', 'medsBagTamperTagged'].includes(field.id);
+    }
+    if (isParamedicMeds && medsBagTamperYes && section.id === 'paramedicMeds-items') required = false;
+    if (isEmtMeds && emtPouchYes && section.id === 'emtMeds-details' && field.id !== 'emtPouchSealed') {
+      required = ['practitionerName', 'practitionerPin', 'pouchNumber', 'emtSealNumber', 'emtPouchSealed'].includes(field.id);
+    }
+    if (isEmtMeds && emtPouchYes && section.id === 'emtMeds-items') required = false;
+    if (isApMeds && controlledTamperYes && section.id === 'apMeds-controlled' && field.id !== 'controlledTamperTagged') required = false;
+    if (isApMeds && apBagTamperYes && section.id === 'apMeds-other' && field.id !== 'apBagTamperTagged') required = false;
+    return required;
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setSuccess('');
+
+    // Enforce required (red asterisk) fields before submit
+    const missing = [];
+    formDef.sections.forEach((section) => {
+      section.fields.forEach((field) => {
+        if (field.type === 'checkbox') return;
+        if (!isFieldRequired(section, field)) return;
+        const val = values[field.id];
+        const empty = val === undefined || val === null || String(val).trim() === '';
+        if (empty) missing.push(field.label || field.id);
+        // ALS Bag: when user selects No, quantity is required
+        if (formDef.id === 'system48' && field.type === 'select' && values[field.id] === 'No') {
+          const qId = `${field.id}_quantity`;
+          const qVal = values[qId];
+          if (qVal === undefined || qVal === null || String(qVal).trim() === '') {
+            missing.push(`${field.label || field.id} (Quantity)`);
+          }
+        }
+      });
+    });
+    if (missing.length > 0) {
+      setError(`Please complete all required fields (marked with *). Missing: ${missing.slice(0, 5).join(', ')}${missing.length > 5 ? '...' : ''}`);
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -276,8 +330,8 @@ const DynamicForm = () => {
         formSnapshot,
       });
       setSuccess('Form submitted successfully.');
-      // Clear but keep page
       setValues({});
+      setFormKey((k) => k + 1); // remount form so file inputs and all controls reset
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to submit form.');
     } finally {
@@ -294,7 +348,7 @@ const DynamicForm = () => {
           <p className="required-note">* Indicates required question</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="dynamic-form">
+        <form key={formKey} onSubmit={handleSubmit} className="dynamic-form">
           {error && <div className="error-message">{error}</div>}
           {success && <div className="success-message">{success}</div>}
 
@@ -472,6 +526,13 @@ const DynamicForm = () => {
                     section.id === 'emtMeds-items'
                   ) {
                     isDisabled = true;
+                  }
+
+                  // When tamper/seal is Yes we grey out checklist selects, but user must still be able to
+                  // type in name, PIN, bag number, comments, etc. So keep text-like inputs editable.
+                  const isTextLike = ['text', 'textarea', 'number', 'datetime', 'email'].includes(field.type);
+                  if (isDisabled && isTextLike) {
+                    isDisabled = false;
                   }
 
                   const isFullRowTamper =

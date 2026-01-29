@@ -526,21 +526,23 @@ async function getImageBuffer(value) {
   return null;
 }
 
-// Helper: ensure at least requiredHeight points fit on current page; if not, add a new page
+// Helper: ensure at least requiredHeight points fit on current page; if not, add a new page.
+// Uses page.maxY() and a buffer so images are never clipped at the page edge.
 function ensureSpaceForImage(doc, requiredHeight, margin) {
-  const pageBottom = doc.page.height - (doc.page.margins?.bottom ?? margin);
-  if (doc.y + requiredHeight > pageBottom) {
+  const pageBottom = typeof doc.page.maxY === 'function' ? doc.page.maxY() : (doc.page.height - (doc.page.margins?.bottom ?? margin));
+  const bufferPt = 15; // extra gap so image never touches page break
+  if (doc.y + requiredHeight > pageBottom - bufferPt) {
     doc.addPage();
   }
 }
 
-// Helper: embed image in PDF doc if path/URL resolves, else return false (async)
+// Helper: embed image in PDF doc if path/URL resolves, else return false (async).
+// Always starts the image on a new page so it is never cut off (full image visible).
 async function embedImageInPdf(doc, value, margin, contentWidth, maxImageHeight = 220) {
   const buffer = await getImageBuffer(value);
   if (!buffer) return false;
   try {
-    const spaceNeeded = maxImageHeight + 20;
-    ensureSpaceForImage(doc, spaceNeeded, margin);
+    doc.addPage(); // each image on its own page so it is never clipped
     doc.image(buffer, margin, doc.y, { fit: [contentWidth, maxImageHeight], align: 'center' });
     doc.y += maxImageHeight;
     doc.moveDown(0.4);
