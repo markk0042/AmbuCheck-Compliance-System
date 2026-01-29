@@ -7,6 +7,7 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const PDFDocument = require('pdfkit');
+const db = require('./db');
 require('dotenv').config();
 
 const app = express();
@@ -100,86 +101,41 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
-// Helper functions for data persistence
-const getDataFile = (filename) => path.join(dataDir, filename);
-
-const readJSON = (filename) => {
-  const filePath = getDataFile(filename);
-  if (!fs.existsSync(filePath)) {
-    return [];
-  }
-  try {
-    const data = fs.readFileSync(filePath, 'utf8');
-    return JSON.parse(data);
-  } catch (error) {
-    return [];
-  }
-};
-
-const writeJSON = (filename, data) => {
-  const filePath = getDataFile(filename);
-  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-};
-
 // Hash for standard test user password "1user" (bcrypt, 10 rounds)
 const USER1_PASSWORD_HASH = '$2a$10$CeVEXdq1SU6MT7CaNwrh9uBM2HfSERgJ7MalRtCz1gB0K8DtZBnFG';
 
 // Initialize default admin user if not exists; ensure user1 exists for testing.
-const initializeUsers = () => {
-  let users = readJSON('users.json');
+async function initializeUsers() {
+  const users = await db.getUsers();
 
-  // First-time initialisation: create default users file.
   if (users.length === 0) {
     const adminHashedPassword = bcrypt.hashSync(ADMIN_DEFAULT_PASSWORD, 10);
     const defaultUsers = [
-      {
-        id: 1,
-        username: 'admin',
-        password: adminHashedPassword,
-        role: 'admin',
-        name: 'Admin User'
-      },
-      {
-        id: 2,
-        username: 'user1',
-        password: USER1_PASSWORD_HASH,
-        role: 'user',
-        name: 'Standard User'
-      }
+      { id: 1, username: 'admin', password: adminHashedPassword, role: 'admin', name: 'Admin User' },
+      { id: 2, username: 'user1', password: USER1_PASSWORD_HASH, role: 'user', name: 'Standard User' }
     ];
-    writeJSON('users.json', defaultUsers);
+    await db.setUsers(defaultUsers);
     return;
   }
 
-  // One-time migration: if existing admin user is still using the old default password,
-  // update it to the new default ADMIN_DEFAULT_PASSWORD.
+  let changed = false;
   const adminIndex = users.findIndex(u => u.username === 'admin');
   if (adminIndex !== -1) {
     try {
       const isOldDefault = bcrypt.compareSync('admin123', users[adminIndex].password || '');
       if (isOldDefault) {
         users[adminIndex].password = bcrypt.hashSync(ADMIN_DEFAULT_PASSWORD, 10);
-        writeJSON('users.json', users);
+        changed = true;
       }
-    } catch (e) {
-      // If comparison fails for any reason, leave users untouched.
-    }
+    } catch (e) { /* leave untouched */ }
   }
-
-  // Ensure standard test user "user1" exists (e.g. after deploy where users.json had only admin).
   if (!users.some(u => u.username === 'user1')) {
     const nextId = Math.max(...users.map(u => u.id), 0) + 1;
-    users.push({
-      id: nextId,
-      username: 'user1',
-      password: USER1_PASSWORD_HASH,
-      role: 'user',
-      name: 'Standard User'
-    });
-    writeJSON('users.json', users);
+    users.push({ id: nextId, username: 'user1', password: USER1_PASSWORD_HASH, role: 'user', name: 'Standard User' });
+    changed = true;
   }
-};
-initializeUsers();
+  if (changed) await db.setUsers(users);
+}
 
 // Middleware for authentication
 const authenticateToken = (req, res, next) => {
@@ -200,8 +156,8 @@ const authenticateToken = (req, res, next) => {
 };
 
 // Initialize sample runsheet data
-const initializeRunsheets = () => {
-  const runsheets = readJSON('runsheets.json');
+async function initializeRunsheets() {
+  const runsheets = await db.getRunsheets();
   if (runsheets.length === 0) {
     const sampleRunsheets = [
       { id: 1, shiftDate: '06/12/2025', bookOnTime: '17:35', bookOffTime: '02:00', trust: 'SCAS', callsign: 'Pa926', shiftEnded: true },
@@ -237,10 +193,9 @@ const initializeRunsheets = () => {
       { id: 31, shiftDate: '18/04/2025', bookOnTime: '21:00', bookOffTime: '08:30', trust: 'SCAS', callsign: 'PA242', shiftEnded: true },
       { id: 32, shiftDate: '17/04/2025', bookOnTime: '19:30', bookOffTime: '07:15', trust: 'SCAS', callsign: 'PA234', shiftEnded: true }
     ];
-    writeJSON('runsheets.json', sampleRunsheets);
+    await db.setRunsheets(sampleRunsheets);
   }
-};
-initializeRunsheets();
+}
 
 // Routes
 
@@ -260,8 +215,7 @@ app.post('/api/login', async (req, res) => {
     console.log('[Login] 400: missing username or password in body');
     return res.status(400).json({ error: 'Username and password are required' });
   }
-  const users = readJSON('users.json');
-  const user = users.find(u => u.username === username);
+  const user = await db.findUserByUsername(username);
 
   if (!user) {
     console.log('[Login] 401: user not found:', username);
@@ -292,25 +246,20 @@ app.post('/api/login', async (req, res) => {
 });
 
 // Get current user
-app.get('/api/me', authenticateToken, (req, res) => {
-  const users = readJSON('users.json');
+app.get('/api/me', authenticateToken, async (req, res) => {
+  const users = await db.getUsers();
   const user = users.find(u => u.id === req.user.id);
   if (user) {
-    res.json({
-      id: user.id,
-      username: user.username,
-      role: user.role,
-      name: user.name
-    });
+    res.json({ id: user.id, username: user.username, role: user.role, name: user.name });
   } else {
     res.status(404).json({ error: 'User not found' });
   }
 });
 
 // Get runsheets with pagination and search
-app.get('/api/runsheets', authenticateToken, (req, res) => {
+app.get('/api/runsheets', authenticateToken, async (req, res) => {
   const { page = 1, limit = 25, search = '' } = req.query;
-  let runsheets = readJSON('runsheets.json');
+  let runsheets = await db.getRunsheets();
 
   // Filter by search term
   if (search) {
@@ -343,9 +292,9 @@ app.get('/api/runsheets', authenticateToken, (req, res) => {
 });
 
 // Get single runsheet
-app.get('/api/runsheets/:id', authenticateToken, (req, res) => {
-  const runsheets = readJSON('runsheets.json');
-  const runsheet = runsheets.find(r => r.id === parseInt(req.params.id));
+app.get('/api/runsheets/:id', authenticateToken, async (req, res) => {
+  const runsheets = await db.getRunsheets();
+  const runsheet = runsheets.find(r => r.id === parseInt(req.params.id, 10));
   if (runsheet) {
     res.json(runsheet);
   } else {
@@ -354,15 +303,13 @@ app.get('/api/runsheets/:id', authenticateToken, (req, res) => {
 });
 
 // Admin-only: list completed generic form submissions by formId
-app.get('/api/admin/forms/:formId/submissions', authenticateToken, (req, res) => {
+app.get('/api/admin/forms/:formId/submissions', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
 
   const { formId } = req.params;
-  const filename = `form-${formId}-submissions.json`;
-  const submissions = readJSON(filename);
-
+  const submissions = await db.getFormSubmissions(formId);
   res.json(submissions);
 });
 
@@ -384,11 +331,8 @@ app.post('/api/equipment-checks', authenticateToken, upload.fields([
   { name: 'nearsidePhoto', maxCount: 1 },
   { name: 'rearPhoto', maxCount: 1 },
   { name: 'offsidePhoto', maxCount: 1 }
-]), (req, res) => {
-  const equipmentChecks = readJSON('equipment-checks.json');
+]), async (req, res) => {
   const checkData = JSON.parse(req.body.data || '{}');
-  
-  // Handle file uploads
   const photos = {};
   if (req.files) {
     if (req.files.frontPhoto) photos.frontPhoto = `/uploads/${req.files.frontPhoto[0].filename}`;
@@ -396,38 +340,29 @@ app.post('/api/equipment-checks', authenticateToken, upload.fields([
     if (req.files.rearPhoto) photos.rearPhoto = `/uploads/${req.files.rearPhoto[0].filename}`;
     if (req.files.offsidePhoto) photos.offsidePhoto = `/uploads/${req.files.offsidePhoto[0].filename}`;
   }
-
-  const newCheck = {
-    id: equipmentChecks.length > 0 ? Math.max(...equipmentChecks.map(c => c.id)) + 1 : 1,
+  const newCheck = await db.addEquipmentCheck({
     ...checkData,
     photos,
     createdAt: new Date().toISOString(),
     createdBy: req.user.id
-  };
-
-  equipmentChecks.push(newCheck);
-  writeJSON('equipment-checks.json', equipmentChecks);
-
+  });
   res.json(newCheck);
 });
 
 // Get equipment checks
-app.get('/api/equipment-checks', authenticateToken, (req, res) => {
-  // For now this endpoint is primarily used by the admin Completed Forms
-  // dashboard, but we may later add per-user filtering.
-  const checks = readJSON('equipment-checks.json');
+app.get('/api/equipment-checks', authenticateToken, async (req, res) => {
+  const checks = await db.getEquipmentChecks();
   res.json(checks);
 });
 
 // Admin-only: generate PDF for a VDI – Start of Shift equipment check
-app.get('/api/admin/equipment-checks/:id/pdf', authenticateToken, (req, res) => {
+app.get('/api/admin/equipment-checks/:id/pdf', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
 
   const id = parseInt(req.params.id, 10);
-  const checks = readJSON('equipment-checks.json');
-  const check = checks.find(c => c.id === id);
+  const check = await db.getEquipmentCheckById(id);
 
   if (!check) {
     return res.status(404).json({ error: 'Equipment check not found' });
@@ -482,7 +417,7 @@ app.get('/api/admin/equipment-checks/:id/pdf', authenticateToken, (req, res) => 
 });
 
 // Generic form submissions (for Driver Checklist, etc.)
-app.post('/api/forms/:formId/submissions', authenticateToken, (req, res) => {
+app.post('/api/forms/:formId/submissions', authenticateToken, async (req, res) => {
   const { formId } = req.params;
   const { values, formSnapshot } = req.body || {};
 
@@ -490,20 +425,11 @@ app.post('/api/forms/:formId/submissions', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'Invalid form data' });
   }
 
-  const filename = `form-${formId}-submissions.json`;
-  const submissions = readJSON(filename);
-
-  const newSubmission = {
-    id: submissions.length > 0 ? Math.max(...submissions.map(s => s.id)) + 1 : 1,
-    formId,
+  const newSubmission = await db.addFormSubmission(formId, {
     values,
     formSnapshot: formSnapshot && typeof formSnapshot === 'object' ? formSnapshot : undefined,
-    createdAt: new Date().toISOString(),
     createdBy: req.user.id,
-  };
-
-  submissions.push(newSubmission);
-  writeJSON(filename, submissions);
+  });
 
   res.json(newSubmission);
 });
@@ -518,16 +444,13 @@ function formatPdfValue(value) {
 }
 
 // Admin-only: generate PDF for a generic form submission (1:1 form layout when formSnapshot exists)
-app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateToken, (req, res) => {
+app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
 
   const { formId, submissionId } = req.params;
-  const filename = `form-${formId}-submissions.json`;
-  const submissions = readJSON(filename);
-  const id = parseInt(submissionId, 10);
-  const submission = submissions.find(s => s.id === id);
+  const submission = await db.getFormSubmissionById(formId, submissionId);
 
   if (!submission) {
     return res.status(404).json({ error: 'Submission not found' });
@@ -590,9 +513,9 @@ app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateTo
 // All authenticated users can read effective config via /api/forms/config/:formId
 // Admins can create/update overrides via /api/admin/forms/config/:formId
 
-app.get('/api/forms/config/:formId', authenticateToken, (req, res) => {
+app.get('/api/forms/config/:formId', authenticateToken, async (req, res) => {
   const { formId } = req.params;
-  const allConfigs = readJSON('form-config-overrides.json') || {};
+  const allConfigs = await db.getFormConfigOverrides();
   const override = allConfigs[formId];
 
   if (!override) {
@@ -602,12 +525,12 @@ app.get('/api/forms/config/:formId', authenticateToken, (req, res) => {
   res.json({ formId, config: override });
 });
 
-app.get('/api/admin/forms/config/:formId', authenticateToken, (req, res) => {
+app.get('/api/admin/forms/config/:formId', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
   const { formId } = req.params;
-  const allConfigs = readJSON('form-config-overrides.json') || {};
+  const allConfigs = await db.getFormConfigOverrides();
   const override = allConfigs[formId];
 
   if (!override) {
@@ -617,7 +540,7 @@ app.get('/api/admin/forms/config/:formId', authenticateToken, (req, res) => {
   res.json({ formId, config: override });
 });
 
-app.put('/api/admin/forms/config/:formId', authenticateToken, (req, res) => {
+app.put('/api/admin/forms/config/:formId', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
@@ -629,32 +552,29 @@ app.put('/api/admin/forms/config/:formId', authenticateToken, (req, res) => {
     return res.status(400).json({ error: 'Valid form config object is required' });
   }
 
-  const allConfigs = readJSON('form-config-overrides.json') || {};
-  allConfigs[formId] = config;
-  writeJSON('form-config-overrides.json', allConfigs);
-
+  await db.setFormConfigOverride(formId, config);
   res.json({ formId, config });
 });
 
 // Admin routes
-app.get('/api/admin/users', authenticateToken, (req, res) => {
+app.get('/api/admin/users', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
-  const users = readJSON('users.json');
+  const users = await db.getUsers();
   res.json(users.map(u => ({ ...u, password: undefined })));
 });
 
 // Admin: Practitioner management
-app.get('/api/admin/practitioners', authenticateToken, (req, res) => {
+app.get('/api/admin/practitioners', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
-  const practitioners = readJSON('practitioners.json');
+  const practitioners = await db.getPractitioners();
   res.json(practitioners);
 });
 
-app.post('/api/admin/practitioners', authenticateToken, (req, res) => {
+app.post('/api/admin/practitioners', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
@@ -662,60 +582,49 @@ app.post('/api/admin/practitioners', authenticateToken, (req, res) => {
   if (!name || !pin) {
     return res.status(400).json({ error: 'Name and PIN are required' });
   }
-  const practitioners = readJSON('practitioners.json');
-  const nextId = practitioners.length > 0 ? Math.max(...practitioners.map(p => p.id || 0)) + 1 : 1;
-  const newPractitioner = { id: nextId, name, pin, role, active };
-  practitioners.push(newPractitioner);
-  writeJSON('practitioners.json', practitioners);
+  const newPractitioner = await db.addPractitioner({ name, pin, role, active });
   res.status(201).json(newPractitioner);
 });
 
-app.put('/api/admin/practitioners/:id', authenticateToken, (req, res) => {
+app.put('/api/admin/practitioners/:id', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
   const id = parseInt(req.params.id, 10);
-  const practitioners = readJSON('practitioners.json');
-  const index = practitioners.findIndex(p => p.id === id);
-  if (index === -1) {
+  const updated = await db.updatePractitioner(id, req.body);
+  if (!updated) {
     return res.status(404).json({ error: 'Practitioner not found' });
   }
-  const updated = { ...practitioners[index], ...req.body, id };
-  practitioners[index] = updated;
-  writeJSON('practitioners.json', practitioners);
   res.json(updated);
 });
 
-app.delete('/api/admin/practitioners/:id', authenticateToken, (req, res) => {
+app.delete('/api/admin/practitioners/:id', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
   const id = parseInt(req.params.id, 10);
-  const practitioners = readJSON('practitioners.json');
-  const remaining = practitioners.filter(p => p.id !== id);
-  if (remaining.length === practitioners.length) {
+  const deleted = await db.deletePractitioner(id);
+  if (!deleted) {
     return res.status(404).json({ error: 'Practitioner not found' });
   }
-  writeJSON('practitioners.json', remaining);
   res.status(204).end();
 });
 
 // Vehicles (registrations / call signs)
-// Any authenticated user can read vehicles (for dropdowns), but only admin can modify.
-app.get('/api/vehicles', authenticateToken, (req, res) => {
-  const vehicles = readJSON('vehicles.json');
+app.get('/api/vehicles', authenticateToken, async (req, res) => {
+  const vehicles = await db.getVehicles();
   res.json(vehicles);
 });
 
-app.get('/api/admin/vehicles', authenticateToken, (req, res) => {
+app.get('/api/admin/vehicles', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
-  const vehicles = readJSON('vehicles.json');
+  const vehicles = await db.getVehicles();
   res.json(vehicles);
 });
 
-app.post('/api/admin/vehicles', authenticateToken, (req, res) => {
+app.post('/api/admin/vehicles', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
@@ -723,41 +632,31 @@ app.post('/api/admin/vehicles', authenticateToken, (req, res) => {
   if (!registration) {
     return res.status(400).json({ error: 'Registration is required' });
   }
-  const vehicles = readJSON('vehicles.json');
-  const nextId = vehicles.length > 0 ? Math.max(...vehicles.map(v => v.id || 0)) + 1 : 1;
-  const newVehicle = { id: nextId, registration, callsign, description };
-  vehicles.push(newVehicle);
-  writeJSON('vehicles.json', vehicles);
+  const newVehicle = await db.addVehicle({ registration, callsign, description });
   res.status(201).json(newVehicle);
 });
 
-app.put('/api/admin/vehicles/:id', authenticateToken, (req, res) => {
+app.put('/api/admin/vehicles/:id', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
   const id = parseInt(req.params.id, 10);
-  const vehicles = readJSON('vehicles.json');
-  const index = vehicles.findIndex(v => v.id === id);
-  if (index === -1) {
+  const updated = await db.updateVehicle(id, req.body);
+  if (!updated) {
     return res.status(404).json({ error: 'Vehicle not found' });
   }
-  const updated = { ...vehicles[index], ...req.body, id };
-  vehicles[index] = updated;
-  writeJSON('vehicles.json', vehicles);
   res.json(updated);
 });
 
-app.delete('/api/admin/vehicles/:id', authenticateToken, (req, res) => {
+app.delete('/api/admin/vehicles/:id', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Admin access required' });
   }
   const id = parseInt(req.params.id, 10);
-  const vehicles = readJSON('vehicles.json');
-  const remaining = vehicles.filter(v => v.id !== id);
-  if (remaining.length === vehicles.length) {
+  const deleted = await db.deleteVehicle(id);
+  if (!deleted) {
     return res.status(404).json({ error: 'Vehicle not found' });
   }
-  writeJSON('vehicles.json', remaining);
   res.status(204).end();
 });
 
@@ -785,6 +684,21 @@ if (process.env.NODE_ENV === 'production') {
   }
 }
 
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+async function start() {
+  await db.init();
+  if (db.useDb) {
+    console.log('Using PostgreSQL (DATABASE_URL set)');
+  } else {
+    console.log('Using JSON file storage (DATABASE_URL not set)');
+  }
+  await initializeUsers();
+  await initializeRunsheets();
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
+}
+
+start().catch((err) => {
+  console.error('Failed to start server:', err);
+  process.exit(1);
 });
