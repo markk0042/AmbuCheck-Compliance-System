@@ -92,7 +92,7 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 // Configure multer for file uploads
-const storage = multer.diskStorage({
+const multerDiskStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
@@ -101,7 +101,7 @@ const storage = multer.diskStorage({
     cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
-const upload = multer({ storage: storage });
+const upload = multer({ storage: multerDiskStorage });
 
 // Hash for standard test user password "1user" (bcrypt, 10 rounds)
 const USER1_PASSWORD_HASH = '$2a$10$CeVEXdq1SU6MT7CaNwrh9uBM2HfSERgJ7MalRtCz1gB0K8DtZBnFG';
