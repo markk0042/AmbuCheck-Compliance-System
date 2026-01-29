@@ -247,11 +247,6 @@ app.post('/api/login', async (req, res) => {
     return res.status(401).json({ error: 'Invalid credentials' });
   }
 
-  // For users, require PIN
-  if (user.role === 'user' && !pin) {
-    return res.status(401).json({ error: 'PIN required for user login' });
-  }
-
   const validPassword = await bcrypt.compare(password, user.password);
   if (!validPassword) {
     return res.status(401).json({ error: 'Invalid credentials' });
