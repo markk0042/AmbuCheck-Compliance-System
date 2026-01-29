@@ -327,13 +327,16 @@ app.post('/api/upload/:fieldName', authenticateToken, upload.single('file'), asy
     return res.status(400).json({ error: 'No file uploaded' });
   }
   let pathOrUrl = `/uploads/${req.file.filename}`;
-  if (storage.isS3Configured()) {
+  if (storage.isPersistentStorageConfigured()) {
     try {
       const buffer = fs.readFileSync(req.file.path);
-      const url = await storage.uploadToS3(buffer, req.file.originalname || req.file.filename);
-      if (url) pathOrUrl = url;
+      const url = await storage.uploadPersistent(buffer, req.file.originalname || req.file.filename);
+      if (url) {
+        pathOrUrl = url;
+        console.log('[Upload] Stored in persistent storage:', url.slice(0, 60) + '...');
+      }
     } catch (err) {
-      console.error('[Upload] S3 upload failed, using local path:', err.message);
+      console.error('[Upload] Persistent storage failed, using local path:', err.message);
     }
   }
   res.json({
@@ -812,6 +815,13 @@ async function start() {
     console.log('Using PostgreSQL (DATABASE_URL set)');
   } else {
     console.log('Using JSON file storage (DATABASE_URL not set)');
+  }
+  if (storage.isSupabaseConfigured()) {
+    console.log('Upload storage: Supabase (SUPABASE_URL set)');
+  } else if (storage.isS3Configured()) {
+    console.log('Upload storage: S3/R2');
+  } else {
+    console.log('Upload storage: local disk only (images may not persist across deploys)');
   }
   await initializeUsers();
   await initializeRunsheets();
