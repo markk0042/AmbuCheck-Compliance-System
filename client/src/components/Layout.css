@@ -10,9 +10,9 @@
   left: 0;
   right: 0;
   height: 56px;
-  background-color: #ffffff;
+  background-color: #87CEEB;
   color: #111827;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -69,7 +69,7 @@
 .sidebar-toggle {
   border: none;
   background: transparent;
-  color: #111827;
+  color: #0c4a6e;
   font-size: 20px;
   margin-right: 8px;
   cursor: pointer;
