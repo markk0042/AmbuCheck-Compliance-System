@@ -147,6 +147,24 @@ async function setRunsheets(runsheets) {
   writeJSON('runsheets.json', runsheets);
 }
 
+async function addRunsheet(runsheet) {
+  if (useDb) {
+    const { id, ...data } = runsheet;
+    const r = await pool.query(
+      'INSERT INTO runsheets (data) VALUES ($1) RETURNING id, data',
+      [JSON.stringify(data)]
+    );
+    const row = r.rows[0];
+    return { id: row.id, ...row.data };
+  }
+  const existing = readJSON('runsheets.json', []);
+  const newId = existing.length > 0 ? Math.max(...existing.map(r => r.id || 0)) + 1 : 1;
+  const newRunsheet = { id: newId, ...runsheet };
+  existing.push(newRunsheet);
+  writeJSON('runsheets.json', existing);
+  return newRunsheet;
+}
+
 async function getFormSubmissions(formId) {
   if (useDb) {
     const r = await pool.query(
@@ -423,6 +441,7 @@ module.exports = {
   findUserByUsername,
   getRunsheets,
   setRunsheets,
+  addRunsheet,
   getFormSubmissions,
   addFormSubmission,
   getFormSubmissionById,

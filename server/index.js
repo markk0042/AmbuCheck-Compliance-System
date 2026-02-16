@@ -268,6 +268,40 @@ app.get('/api/runsheets', authenticateToken, async (req, res) => {
   const { page = 1, limit = 25, search = '' } = req.query;
   let runsheets = await db.getRunsheets();
 
+  // For non-admin users, only show runsheets they are attached to
+  // (creator, name match or PIN match from practitioner record).
+  if (req.user.role !== 'admin') {
+    const userId = req.user.id;
+    const userName = (req.user.name || '').toLowerCase();
+
+    // Try to resolve the user's clinical PIN from practitioners (by name)
+    let userPin = null;
+    try {
+      const practitioners = await db.getPractitioners();
+      const match = practitioners.find(
+        (p) => (p.name || '').toLowerCase() === userName && p.active !== false
+      );
+      if (match?.pin) {
+        userPin = String(match.pin).trim();
+      }
+    } catch (e) {
+      // If practitioner lookup fails, we just fall back to name/createdBy matching
+    }
+
+    runsheets = runsheets.filter((r) => {
+      const crew1 = (r.crew1Name || '').toLowerCase();
+      const crew2 = (r.crew2Name || '').toLowerCase();
+      const crew1Pin = r.crew1Pin ? String(r.crew1Pin).trim() : '';
+      const crew2Pin = r.crew2Pin ? String(r.crew2Pin).trim() : '';
+
+      return (
+        r.createdBy === userId ||
+        (userName && (crew1 === userName || crew2 === userName)) ||
+        (userPin && (crew1Pin === userPin || crew2Pin === userPin))
+      );
+    });
+  }
+
   // Filter by search term
   if (search) {
     const searchLower = search.toLowerCase();
@@ -306,6 +340,82 @@ app.get('/api/runsheets/:id', authenticateToken, async (req, res) => {
     res.json(runsheet);
   } else {
     res.status(404).json({ error: 'Runsheet not found' });
+  }
+});
+
+// Create a new frontline runsheet (Start Shift)
+app.post('/api/runsheets', authenticateToken, async (req, res) => {
+  const {
+    shiftDate,
+    bookOnTime,
+    bookOffTime,
+    trustStation,
+    trustContract,
+    trustCallsign,
+    drugBagNumbers,
+    drugBagSeals,
+    vehicleRegistration,
+    fleetNumber,
+    startMileage,
+    startFuel,
+    crew1Name,
+    crew1Pin,
+    crew1Grade,
+    crew2Name,
+    crew2Pin,
+    crew2Grade,
+    mealBreak,
+    eosDrugBag,
+    eosMileage,
+    eosBookOffTime,
+    eosFuel,
+    commentsNotes,
+  } = req.body || {};
+
+  if (!shiftDate || !bookOnTime || !trustContract || !trustCallsign) {
+    return res.status(400).json({ error: 'Shift date, Book on time, Trust contract and Callsign are required.' });
+  }
+
+  const nowIso = new Date().toISOString();
+
+  const runsheetData = {
+    shiftDate,
+    bookOnTime,
+    bookOffTime: bookOffTime || '',
+    trust: trustContract || '',
+    callsign: trustCallsign || '',
+    shiftEnded: true,
+    trustStation: trustStation || '',
+    trustContract: trustContract || '',
+    trustCallsign: trustCallsign || '',
+    drugBagNumbers: drugBagNumbers || '',
+    drugBagSeals: drugBagSeals || '',
+    vehicleRegistration: vehicleRegistration || '',
+    fleetNumber: fleetNumber || '',
+    startMileage: startMileage || '',
+    startFuel: startFuel || '',
+    crew1Name: crew1Name || '',
+    crew1Pin: crew1Pin || '',
+    crew1Grade: crew1Grade || '',
+    crew2Name: crew2Name || '',
+    crew2Pin: crew2Pin || '',
+    crew2Grade: crew2Grade || '',
+    mealBreak: mealBreak || '',
+    eosDrugBag: eosDrugBag || '',
+    eosMileage: eosMileage || '',
+    eosBookOffTime: eosBookOffTime || '',
+    eosFuel: eosFuel || '',
+    commentsNotes: commentsNotes || '',
+    createdBy: req.user.id,
+    createdAt: nowIso,
+  };
+
+  try {
+    const saved = await db.addRunsheet(runsheetData);
+    res.json(saved);
+  } catch (err) {
+    console.error('[Runsheets] Failed to create runsheet:', err.message);
+    res.status(500).json({ error: 'Failed to create runsheet' });
   }
 });
 

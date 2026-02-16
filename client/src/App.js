@@ -6,6 +6,7 @@ import EquipmentCheck from './components/EquipmentCheck';
 import ChecklistList from './components/ChecklistList';
 import DynamicForm from './components/DynamicForm';
 import Layout from './components/Layout';
+import RunsheetList from './components/RunsheetList';
 import PrivacyPolicy from './components/PrivacyPolicy';
 import SplashScreen from './components/SplashScreen';
 import CompletedForms from './components/CompletedForms';
@@ -71,6 +72,16 @@ function App() {
                 <PrivateRoute>
                   <Layout>
                     <EquipmentCheck />
+                  </Layout>
+                </PrivateRoute>
+              }
+            />
+            <Route
+              path="/runsheets"
+              element={
+                <PrivateRoute>
+                  <Layout>
+                    <RunsheetList />
                   </Layout>
                 </PrivateRoute>
               }

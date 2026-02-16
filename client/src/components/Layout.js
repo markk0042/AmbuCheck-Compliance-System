@@ -45,6 +45,16 @@ const Layout = ({ children }) => {
         <nav className="sidebar-nav">
 
           <div className="sidebar-section">
+            <p className="sidebar-section-title">Frontline Run Sheets</p>
+            <button
+              className={`sidebar-item ${isActive('/runsheets') ? 'active' : ''}`}
+              onClick={() => go('/runsheets')}
+            >
+              Frontline Run Sheets
+            </button>
+          </div>
+
+          <div className="sidebar-section">
             <p className="sidebar-section-title">Vehicle / Equipment</p>
             <button
               className={`sidebar-item ${isActive('/equipment-check') ? 'active' : ''}`}
