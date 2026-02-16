@@ -441,6 +441,7 @@ app.post('/api/runsheets', authenticateToken, async (req, res) => {
 app.put('/api/runsheets/:id/end', authenticateToken, async (req, res) => {
   const { id } = req.params;
   const {
+    bookOffTime,
     mealBreak,
     eosDrugBag,
     eosMileage,
@@ -450,6 +451,7 @@ app.put('/api/runsheets/:id/end', authenticateToken, async (req, res) => {
 
   const updates = {
     shiftEnded: true,
+    bookOffTime: bookOffTime ?? '',
     mealBreak: mealBreak ?? '',
     eosDrugBag: eosDrugBag ?? '',
     eosMileage: eosMileage ?? '',

@@ -38,6 +38,7 @@ const RunsheetList = () => {
   const [viewRow, setViewRow] = useState(null);
   const [endRow, setEndRow] = useState(null);
   const [endValues, setEndValues] = useState({
+    bookOffTime: '',
     mealBreak: '',
     eosDrugBag: '',
     eosMileage: '',
@@ -158,6 +159,7 @@ const RunsheetList = () => {
   const openEndShift = (row) => {
     setEndError('');
     setEndValues({
+      bookOffTime: row.bookOffTime || '',
       mealBreak: row.mealBreak || '',
       eosDrugBag: row.eosDrugBag || '',
       eosMileage: row.eosMileage || '',
@@ -875,6 +877,18 @@ const RunsheetList = () => {
                   </div>
                 )}
                 <form onSubmit={handleEndSubmit} className="runsheet-form-grid">
+                  <div className="runsheet-form-group">
+                    <label>Book off Time</label>
+                    <input
+                      type="text"
+                      name="bookOffTime"
+                      value={endValues.bookOffTime}
+                      onChange={handleEndChange}
+                      placeholder="e.g. 06:45"
+                      required
+                    />
+                  </div>
+
                   <div className="runsheet-form-group">
                     <label>Meal Break</label>
                     <select
