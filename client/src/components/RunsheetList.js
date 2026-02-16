@@ -49,6 +49,22 @@ const RunsheetList = () => {
   });
   const [endSubmitting, setEndSubmitting] = useState(false);
   const [endError, setEndError] = useState('');
+  const [jobValues, setJobValues] = useState({
+    cadNumber: '',
+    callTimeReceived: '',
+    mobileTime: '',
+    address: '',
+    stoodDown: '',
+    emergencyLightsScene: '',
+    timeAtScene: '',
+    timeAtPatient: '',
+    leaveScene: '',
+    emergencyLightsHospital: '',
+    handoverTime: '',
+    clearTime: '',
+  });
+  const [jobSubmitting, setJobSubmitting] = useState(false);
+  const [jobError, setJobError] = useState('');
 
   const fetchRunsheets = useCallback(async () => {
     try {
@@ -161,6 +177,47 @@ const RunsheetList = () => {
         err.response?.data?.error || 'Failed to end shift. Please try again.'
       );
       setEndSubmitting(false);
+    }
+  };
+
+  const handleJobChange = (e) => {
+    const { name, value } = e.target;
+    setJobValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddJob = async (e) => {
+    e.preventDefault();
+    if (!viewRow) return;
+    setJobError('');
+    setJobSubmitting(true);
+    try {
+      const response = await api.post(`/api/runsheets/${viewRow.id}/jobs`, jobValues);
+      const updated = response.data;
+      setRunsheets((prev) =>
+        prev.map((r) => (r.id === updated.id ? updated : r))
+      );
+      setViewRow(updated);
+      setJobValues({
+        cadNumber: '',
+        callTimeReceived: '',
+        mobileTime: '',
+        address: '',
+        stoodDown: '',
+        emergencyLightsScene: '',
+        timeAtScene: '',
+        timeAtPatient: '',
+        leaveScene: '',
+        emergencyLightsHospital: '',
+        handoverTime: '',
+        clearTime: '',
+      });
+      setJobSubmitting(false);
+    } catch (err) {
+      console.error('Error adding job:', err);
+      setJobError(
+        err.response?.data?.error || 'Failed to add job. Please try again.'
+      );
+      setJobSubmitting(false);
     }
   };
 
