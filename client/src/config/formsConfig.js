@@ -370,6 +370,19 @@ export const formsConfig = {
           },
         ],
       },
+      {
+        id: 'shiftEndVdi-patient',
+        title: 'Patient Area',
+        fields: [
+          {
+            id: 'responseBagSealed',
+            label: 'Response Bag Sealed',
+            type: 'select',
+            required: true,
+            options: ['Present', 'Not present'],
+          },
+        ],
+      },
     ],
   },
   blsBagUpdated: {

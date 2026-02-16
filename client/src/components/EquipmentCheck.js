@@ -792,7 +792,7 @@ const EquipmentCheck = () => {
                 {renderStatusSelect('monitorDefib', formData.monitorDefib)}
               </div>
               <div className="form-group">
-                <label>Response Bag <span className="required">*</span></label>
+                <label>Response Bag Sealed <span className="required">*</span></label>
                 {renderStatusSelect('responseBag', formData.responseBag)}
               </div>
               <div className="form-group">

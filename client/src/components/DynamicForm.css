@@ -117,6 +117,16 @@
   max-width: 320px;
 }
 
+/* Slightly smaller, cleaner dropdown styling for all dynamic forms */
+.dynamic-form select {
+  font-size: 14px;
+  padding: 6px 8px;
+}
+
+.dynamic-form select option {
+  font-size: 14px;
+}
+
 /* Ensure "Other" textareas sit under their related dropdowns on key forms */
 .form-paramedicMeds .dynamic-form-fields {
   grid-template-columns: 1fr;

@@ -86,6 +86,15 @@
   font-family: inherit;
 }
 
+/* Make dropdown options slightly smaller so open menus feel lighter */
+.form-group select {
+  font-size: 14px;
+}
+
+.form-group select option {
+  font-size: 14px;
+}
+
 .form-group input:focus,
 .form-group select:focus,
 .form-group textarea:focus {

@@ -412,7 +412,8 @@ app.get('/api/admin/equipment-checks/:id/pdf', authenticateToken, async (req, re
   );
   doc.pipe(res);
 
-  doc.fontSize(16).text('AmbuCheck – VDI Start of Shift', { align: 'left' });
+  // Main heading centered
+  doc.fontSize(16).text('AmbuCheck – VDI Start of Shift', { align: 'center' });
   doc.moveDown(0.5);
   doc.fontSize(13).text(`Record ID: ${check.id}`);
   doc.fontSize(11).text(`Vehicle registration: ${check.registration || '-'}`);
@@ -421,7 +422,8 @@ app.get('/api/admin/equipment-checks/:id/pdf', authenticateToken, async (req, re
   doc.text(`Created at: ${check.createdAt || '-'}`);
   doc.moveDown();
 
-  doc.fontSize(13).text('Checklist Values', { underline: true });
+  // Section heading centered
+  doc.fontSize(13).text('Checklist Values', { underline: true, align: 'center' });
   doc.moveDown(0.5);
   doc.fontSize(11);
 
@@ -441,7 +443,7 @@ app.get('/api/admin/equipment-checks/:id/pdf', authenticateToken, async (req, re
 
   if (photos && Object.keys(photos).length > 0) {
     doc.moveDown();
-    doc.fontSize(13).text('Photos', { underline: true });
+    doc.fontSize(13).text('Photos', { underline: true, align: 'center' });
     doc.moveDown(0.5);
     doc.fontSize(11);
     for (const [key, pathValue] of Object.entries(photos)) {
@@ -589,13 +591,15 @@ app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateTo
 
   if (snapshot && snapshot.title && Array.isArray(snapshot.sections) && snapshot.sections.length > 0) {
     // Styled form: bold title, section headings, label + value-in-box per field
-    doc.font('Helvetica-Bold').fontSize(20).fillColor('#000').text(snapshot.title, { align: 'left' });
+    // Main completed-form heading centered
+    doc.font('Helvetica-Bold').fontSize(20).fillColor('#000').text(snapshot.title, { align: 'center' });
     doc.moveDown(0.4);
     doc.font('Helvetica').fontSize(9).fillColor('#666').text(`Submission ID: ${submission.id}  ·  Submitted: ${submission.createdAt || '-'}  ·  User ID: ${submission.createdBy ?? '-'}`);
     doc.fillColor('#000').moveDown(1.2);
 
     for (const section of snapshot.sections) {
-      doc.font('Helvetica-Bold').fontSize(13).fillColor('#000').text(section.title || 'Section', { align: 'left' });
+      // Section headings centered
+      doc.font('Helvetica-Bold').fontSize(13).fillColor('#000').text(section.title || 'Section', { align: 'center' });
       doc.moveDown(0.6);
       doc.font('Helvetica').fontSize(10);
 
@@ -638,14 +642,16 @@ app.get('/api/admin/forms/:formId/submissions/:submissionId/pdf', authenticateTo
     }
   } else {
     // Fallback for submissions without formSnapshot (legacy): raw key-value list
-    doc.font('Helvetica-Bold').fontSize(16).text('AmbuCheck – Completed Form', { align: 'left' });
+    // Legacy completed-form heading centered
+    doc.font('Helvetica-Bold').fontSize(16).text('AmbuCheck – Completed Form', { align: 'center' });
     doc.moveDown(0.5);
     doc.font('Helvetica').fontSize(11).text(`Form: ${formId}`);
     doc.text(`Submission ID: ${submission.id}`);
     doc.text(`Submitted at: ${submission.createdAt || '-'}`);
     doc.text(`Submitted by (user id): ${submission.createdBy || '-'}`);
     doc.moveDown();
-    doc.font('Helvetica-Bold').fontSize(12).text('Answers', { underline: true });
+    // Answers heading centered
+    doc.font('Helvetica-Bold').fontSize(12).text('Answers', { underline: true, align: 'center' });
     doc.moveDown(0.5);
     doc.font('Helvetica').fontSize(10);
     Object.entries(values).forEach(([key, value]) => {
