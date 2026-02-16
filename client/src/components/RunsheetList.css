@@ -89,6 +89,12 @@
   margin-bottom: 16px;
 }
 
+.runsheet-header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
 .runsheet-section h2 {
   margin: 0;
   color: #333;

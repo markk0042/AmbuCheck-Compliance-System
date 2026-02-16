@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import api from '../utils/axios';
+import { useAuth } from '../context/AuthContext';
 import './RunsheetList.css';
 
 const RunsheetList = () => {
+  const { user } = useAuth();
   const [runsheets, setRunsheets] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
@@ -144,6 +146,25 @@ const RunsheetList = () => {
     }
   };
 
+  const handleClearAll = async () => {
+    if (!user || user.role !== 'admin') return;
+    // eslint-disable-next-line no-alert
+    const confirmed = window.confirm(
+      'Clear ALL frontline run sheets? This cannot be undone.'
+    );
+    if (!confirmed) return;
+    try {
+      await api.delete('/api/admin/runsheets');
+      setCurrentPage(1);
+      fetchRunsheets();
+    } catch (err) {
+      // eslint-disable-next-line no-alert
+      alert(
+        err.response?.data?.error || 'Failed to clear runsheets. Please try again.'
+      );
+    }
+  };
+
   const openEndShift = (row) => {
     setEndError('');
     setEndValues({
@@ -227,13 +248,24 @@ const RunsheetList = () => {
         <div className="runsheet-section">
           <div className="runsheet-header-row">
             <h2>Frontline Run Sheets</h2>
-            <button
-              type="button"
-              className="btn btn-primary"
-              onClick={() => setShowForm((v) => !v)}
-            >
-              {showForm ? 'Close Start Shift' : 'Start Shift'}
-            </button>
+            <div className="runsheet-header-actions">
+              {user?.role === 'admin' && (
+                <button
+                  type="button"
+                  className="btn btn-secondary"
+                  onClick={handleClearAll}
+                >
+                  Clear All
+                </button>
+              )}
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={() => setShowForm((v) => !v)}
+              >
+                {showForm ? 'Close Start Shift' : 'Start Shift'}
+              </button>
+            </div>
           </div>
 
           {showForm && (
