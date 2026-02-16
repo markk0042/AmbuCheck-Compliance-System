@@ -212,6 +212,23 @@ async function getFormSubmissionById(formId, submissionId) {
   return submissions.find(s => s.id === parseInt(submissionId, 10)) || null;
 }
 
+async function deleteFormSubmission(formId, submissionId) {
+  if (useDb) {
+    const r = await pool.query(
+      'DELETE FROM form_submissions WHERE form_id = $1 AND id = $2',
+      [formId, submissionId]
+    );
+    return r.rowCount > 0;
+  }
+  const filename = `form-${formId}-submissions.json`;
+  const submissions = readJSON(filename, []);
+  const sid = parseInt(submissionId, 10);
+  const filtered = submissions.filter(s => s.id !== sid);
+  if (filtered.length === submissions.length) return false;
+  writeJSON(filename, filtered);
+  return true;
+}
+
 async function getEquipmentChecks() {
   if (useDb) {
     const r = await pool.query('SELECT id, data, created_at, created_by FROM equipment_checks ORDER BY id');
