@@ -50,6 +50,11 @@ app.use(cors({
       return callback(null, true);
     }
     
+    // Allow Render app origins (onrender.com)
+    if (origin.includes('.onrender.com')) {
+      return callback(null, true);
+    }
+    
     // Allow all Vercel preview and production deployments
     if (origin.includes('.vercel.app')) {
       return callback(null, true);
