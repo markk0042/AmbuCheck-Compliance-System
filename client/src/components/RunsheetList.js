@@ -17,7 +17,6 @@ const RunsheetList = () => {
   const [formValues, setFormValues] = useState({
     shiftDate: '',
     bookOnTime: '',
-    bookOffTime: '',
     trustStation: '',
     trustContract: '',
     trustCallsign: '',
@@ -109,7 +108,6 @@ const RunsheetList = () => {
       setFormValues({
         shiftDate: '',
         bookOnTime: '',
-        bookOffTime: '',
         trustStation: '',
         trustContract: '',
         trustCallsign: '',
@@ -287,17 +285,6 @@ const RunsheetList = () => {
                     required
                   />
                 </div>
-                <div className="runsheet-form-group">
-                  <label>Book off Time</label>
-                  <input
-                    type="text"
-                    name="bookOffTime"
-                    value={formValues.bookOffTime}
-                    onChange={handleFormChange}
-                    placeholder="e.g. 06:45"
-                  />
-                </div>
-
                 <div className="runsheet-form-group">
                   <label>Trust Station</label>
                   <input
