@@ -163,6 +163,35 @@ const CompletedForms = () => {
     }
   };
 
+  const handleDelete = async (row) => {
+    const categoryLabel = activeConfig?.label || activeCategory;
+    // Simple browser confirm to avoid accidental deletion
+    // eslint-disable-next-line no-alert
+    const confirmed = window.confirm(
+      `Delete this ${categoryLabel} record (ID ${row.id})? This cannot be undone.`
+    );
+    if (!confirmed) return;
+
+    try {
+      if (activeCategory === 'vdiStart') {
+        await api.delete(`/api/admin/equipment-checks/${row.id}`);
+      } else {
+        await api.delete(
+          `/api/admin/forms/${activeCategory}/submissions/${row.id}`
+        );
+      }
+      if (viewRow && viewRow.id === row.id) {
+        setViewRow(null);
+      }
+      loadData(activeCategory);
+    } catch (err) {
+      const msg =
+        err.response?.data?.error || 'Unable to delete. Please try again.';
+      // eslint-disable-next-line no-alert
+      alert(msg);
+    }
+  };
+
   return (
     <div className="completed-forms-container">
       <h2>Completed Forms</h2>
