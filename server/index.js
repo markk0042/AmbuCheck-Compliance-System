@@ -164,6 +164,10 @@ const authenticateToken = (req, res, next) => {
 
 // Initialize sample runsheet data
 async function initializeRunsheets() {
+  // In production we do NOT seed sample runsheets to keep the data clean.
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
   const runsheets = await db.getRunsheets();
   if (runsheets.length === 0) {
     const sampleRunsheets = [
@@ -340,6 +344,20 @@ app.get('/api/runsheets/:id', authenticateToken, async (req, res) => {
     res.json(runsheet);
   } else {
     res.status(404).json({ error: 'Runsheet not found' });
+  }
+});
+
+// Admin-only: clear all runsheets (used to reset Frontline Run Sheets)
+app.delete('/api/admin/runsheets', authenticateToken, async (req, res) => {
+  if (req.user.role !== 'admin') {
+    return res.status(403).json({ error: 'Admin access required' });
+  }
+  try {
+    await db.setRunsheets([]);
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[Runsheets] Failed to clear runsheets:', err.message);
+    res.status(500).json({ error: 'Failed to clear runsheets' });
   }
 });
 
