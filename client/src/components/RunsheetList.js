@@ -620,6 +620,186 @@ const RunsheetList = () => {
                   <h4>Comments / Notes</h4>
                   <p>{viewRow.commentsNotes || '—'}</p>
                 </section>
+
+                <section className="runsheet-view-section">
+                  <h4>Jobs / Calls</h4>
+                  {Array.isArray(viewRow.jobs) && viewRow.jobs.length > 0 ? (
+                    <dl>
+                      {viewRow.jobs.map((job) => (
+                        <React.Fragment key={job.index || job.cadNumber || job.createdAt}>
+                          <dt>CAD Number</dt>
+                          <dd>{job.cadNumber || '—'}</dd>
+                          <dt>Call time received</dt>
+                          <dd>{job.callTimeReceived || '—'}</dd>
+                          <dt>Mobile time</dt>
+                          <dd>{job.mobileTime || '—'}</dd>
+                          <dt>Address</dt>
+                          <dd>{job.address || '—'}</dd>
+                          <dt>Where you stood down</dt>
+                          <dd>{job.stoodDown || '—'}</dd>
+                          <dt>Emergency lights used? (scene)</dt>
+                          <dd>{job.emergencyLightsScene || '—'}</dd>
+                          <dt>Time at scene</dt>
+                          <dd>{job.timeAtScene || '—'}</dd>
+                          <dt>Time at patient</dt>
+                          <dd>{job.timeAtPatient || '—'}</dd>
+                          <dt>Leave scene</dt>
+                          <dd>{job.leaveScene || '—'}</dd>
+                          <dt>Emergency lights used? (hospital)</dt>
+                          <dd>{job.emergencyLightsHospital || '—'}</dd>
+                          <dt>Handover time</dt>
+                          <dd>{job.handoverTime || '—'}</dd>
+                          <dt>Clear time</dt>
+                          <dd>{job.clearTime || '—'}</dd>
+                          <dt>—</dt>
+                          <dd>—</dd>
+                        </React.Fragment>
+                      ))}
+                    </dl>
+                  ) : (
+                    <p>No jobs recorded yet.</p>
+                  )}
+
+                  {!viewRow.shiftEnded && (
+                    <div className="runsheet-jobs-add">
+                      <h4>Add Job / Call</h4>
+                      {jobError && (
+                        <div className="runsheet-form-error" style={{ marginBottom: 8 }}>
+                          {jobError}
+                        </div>
+                      )}
+                      <form onSubmit={handleAddJob} className="runsheet-form-grid">
+                        <div className="runsheet-form-group">
+                          <label>CAD Number</label>
+                          <input
+                            type="text"
+                            name="cadNumber"
+                            value={jobValues.cadNumber}
+                            onChange={handleJobChange}
+                          />
+                        </div>
+                        <div className="runsheet-form-group">
+                          <label>Call time received</label>
+                          <input
+                            type="text"
+                            name="callTimeReceived"
+                            value={jobValues.callTimeReceived}
+                            onChange={handleJobChange}
+                          />
+                        </div>
+                        <div className="runsheet-form-group">
+                          <label>Mobile time</label>
+                          <input
+                            type="text"
+                            name="mobileTime"
+                            value={jobValues.mobileTime}
+                            onChange={handleJobChange}
+                          />
+                        </div>
+                        <div className="runsheet-form-group runsheet-form-group-full">
+                          <label>Address of CAD</label>
+                          <input
+                            type="text"
+                            name="address"
+                            value={jobValues.address}
+                            onChange={handleJobChange}
+                          />
+                        </div>
+                        <div className="runsheet-form-group">
+                          <label>Where you stood down</label>
+                          <select
+                            name="stoodDown"
+                            value={jobValues.stoodDown}
+                            onChange={handleJobChange}
+                          >
+                            <option value="">Select...</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                          </select>
+                        </div>
+                        <div className="runsheet-form-group">
+                          <label>Emergency lights used? (scene)</label>
+                          <select
+                            name="emergencyLightsScene"
+                            value={jobValues.emergencyLightsScene}
+                            onChange={handleJobChange}
+                          >
+                            <option value="">Select...</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                          </select>
+                        </div>
+                        <div className="runsheet-form-group">
+                          <label>Time at scene</label>
+                          <input
+                            type="text"
+                            name="timeAtScene"
+                            value={jobValues.timeAtScene}
+                            onChange={handleJobChange}
+                          />
+                        </div>
+                        <div className="runsheet-form-group">
+                          <label>Time at patient</label>
+                          <input
+                            type="text"
+                            name="timeAtPatient"
+                            value={jobValues.timeAtPatient}
+                            onChange={handleJobChange}
+                          />
+                        </div>
+                        <div className="runsheet-form-group">
+                          <label>Leave scene</label>
+                          <input
+                            type="text"
+                            name="leaveScene"
+                            value={jobValues.leaveScene}
+                            onChange={handleJobChange}
+                          />
+                        </div>
+                        <div className="runsheet-form-group">
+                          <label>Emergency lights used? (hospital)</label>
+                          <select
+                            name="emergencyLightsHospital"
+                            value={jobValues.emergencyLightsHospital}
+                            onChange={handleJobChange}
+                          >
+                            <option value="">Select...</option>
+                            <option value="Yes">Yes</option>
+                            <option value="No">No</option>
+                          </select>
+                        </div>
+                        <div className="runsheet-form-group">
+                          <label>Handover time</label>
+                          <input
+                            type="text"
+                            name="handoverTime"
+                            value={jobValues.handoverTime}
+                            onChange={handleJobChange}
+                          />
+                        </div>
+                        <div className="runsheet-form-group">
+                          <label>Clear time</label>
+                          <input
+                            type="text"
+                            name="clearTime"
+                            value={jobValues.clearTime}
+                            onChange={handleJobChange}
+                          />
+                        </div>
+
+                        <div className="runsheet-form-actions">
+                          <button
+                            type="submit"
+                            className="btn btn-primary"
+                            disabled={jobSubmitting}
+                          >
+                            {jobSubmitting ? 'Saving...' : 'Add Job'}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
+                  )}
+                </section>
               </div>
             </div>
           </div>

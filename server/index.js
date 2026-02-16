@@ -451,6 +451,65 @@ app.put('/api/runsheets/:id/end', authenticateToken, async (req, res) => {
   }
 });
 
+// Add a job/call entry to a runsheet (only allowed before shift is ended)
+app.post('/api/runsheets/:id/jobs', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const {
+    cadNumber,
+    callTimeReceived,
+    mobileTime,
+    address,
+    stoodDown,
+    emergencyLightsScene,
+    timeAtScene,
+    timeAtPatient,
+    leaveScene,
+    emergencyLightsHospital,
+    handoverTime,
+    clearTime,
+  } = req.body || {};
+
+  try {
+    const all = await db.getRunsheets();
+    const runsheet = all.find((r) => r.id === parseInt(id, 10));
+    if (!runsheet) {
+      return res.status(404).json({ error: 'Runsheet not found' });
+    }
+    if (runsheet.shiftEnded) {
+      return res.status(400).json({ error: 'Shift already ended; cannot add jobs.' });
+    }
+
+    const jobs = Array.isArray(runsheet.jobs) ? [...runsheet.jobs] : [];
+    const jobIndex = jobs.length + 1;
+    const job = {
+      index: jobIndex,
+      cadNumber: cadNumber || '',
+      callTimeReceived: callTimeReceived || '',
+      mobileTime: mobileTime || '',
+      address: address || '',
+      stoodDown: stoodDown || '',
+      emergencyLightsScene: emergencyLightsScene || '',
+      timeAtScene: timeAtScene || '',
+      timeAtPatient: timeAtPatient || '',
+      leaveScene: leaveScene || '',
+      emergencyLightsHospital: emergencyLightsHospital || '',
+      handoverTime: handoverTime || '',
+      clearTime: clearTime || '',
+      createdAt: new Date().toISOString(),
+    };
+    jobs.push(job);
+
+    const updated = await db.updateRunsheet(id, { jobs });
+    if (!updated) {
+      return res.status(404).json({ error: 'Runsheet not found' });
+    }
+    res.json(updated);
+  } catch (err) {
+    console.error('[Runsheets] Failed to add job:', err.message);
+    res.status(500).json({ error: 'Failed to add job' });
+  }
+});
+
 // Admin-only: list completed generic form submissions by formId
 app.get('/api/admin/forms/:formId/submissions', authenticateToken, async (req, res) => {
   if (req.user.role !== 'admin') {
