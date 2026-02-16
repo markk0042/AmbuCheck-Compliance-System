@@ -15,6 +15,18 @@ const CATEGORIES = [
   { id: 'apMeds', label: 'Advanced Para Meds' },
 ];
 
+const CATEGORY_BADGES = {
+  vdiStart: 'VDI',
+  shiftEndVdi: 'EOS',
+  vehicleIr1: 'IR1',
+  monitorCheck: 'Monitor',
+  blsBagUpdated: 'BLS',
+  emtMeds: 'EMT',
+  paramedicMeds: 'Paramedic',
+  system48: 'ALS',
+  apMeds: 'AP',
+};
+
 const formatDateTime = (isoString) => {
   if (!isoString) return '-';
   const d = new Date(isoString);
@@ -217,7 +229,16 @@ const CompletedForms = () => {
 
         <section className="completed-forms-content">
           <div className="completed-forms-header">
-            <h3>{activeConfig?.label}</h3>
+            <h3>
+              {activeConfig?.label}
+              {activeCategory && (
+                <span
+                  className={`completed-forms-badge completed-forms-badge-${activeCategory}`}
+                >
+                  {CATEGORY_BADGES[activeCategory] || 'FORM'}
+                </span>
+              )}
+            </h3>
             <div className="completed-forms-tools">
               <input
                 type="text"

@@ -488,7 +488,7 @@ const RunsheetList = () => {
                       <th>Book off Time</th>
                       <th>Trust</th>
                       <th>Callsign</th>
-                      <th>Shift Ended</th>
+                      <th>Shift Status</th>
                       <th>Runsheet Details</th>
                     </tr>
                   </thead>
@@ -498,9 +498,19 @@ const RunsheetList = () => {
                         <td>{runsheet.shiftDate}</td>
                         <td>{runsheet.bookOnTime}</td>
                         <td>{runsheet.bookOffTime}</td>
-                      <td>{runsheet.trust}</td>
-                      <td>{runsheet.callsign}</td>
-                        <td>{runsheet.shiftEnded ? 'True' : 'False'}</td>
+                        <td>{runsheet.trust}</td>
+                        <td>{runsheet.callsign}</td>
+                        <td>
+                          <span
+                            className={`runsheet-status ${
+                              runsheet.shiftEnded
+                                ? 'runsheet-status-complete'
+                                : 'runsheet-status-active'
+                            }`}
+                          >
+                            {runsheet.shiftEnded ? 'Completed' : 'Active'}
+                          </span>
+                        </td>
                         <td>
                         <div className="runsheet-actions">
                           <button
