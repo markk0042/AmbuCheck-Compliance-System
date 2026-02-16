@@ -212,6 +212,12 @@
   background-color: #f8f9fa;
 }
 
+.runsheet-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
 .pagination {
   display: flex;
   justify-content: center;

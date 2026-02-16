@@ -39,6 +39,16 @@ const RunsheetList = () => {
     commentsNotes: '',
   });
   const [viewRow, setViewRow] = useState(null);
+  const [endRow, setEndRow] = useState(null);
+  const [endValues, setEndValues] = useState({
+    mealBreak: '',
+    eosDrugBag: '',
+    eosMileage: '',
+    eosBookOffTime: '',
+    eosFuel: '',
+  });
+  const [endSubmitting, setEndSubmitting] = useState(false);
+  const [endError, setEndError] = useState('');
 
   const fetchRunsheets = useCallback(async () => {
     try {
@@ -115,6 +125,42 @@ const RunsheetList = () => {
         err.response?.data?.error || 'Failed to create runsheet. Please try again.'
       );
       setFormSubmitting(false);
+    }
+  };
+
+  const openEndShift = (row) => {
+    setEndError('');
+    setEndValues({
+      mealBreak: row.mealBreak || '',
+      eosDrugBag: row.eosDrugBag || '',
+      eosMileage: row.eosMileage || '',
+      eosBookOffTime: row.eosBookOffTime || '',
+      eosFuel: row.eosFuel || '',
+    });
+    setEndRow(row);
+  };
+
+  const handleEndChange = (e) => {
+    const { name, value } = e.target;
+    setEndValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleEndSubmit = async (e) => {
+    e.preventDefault();
+    if (!endRow) return;
+    setEndError('');
+    setEndSubmitting(true);
+    try {
+      await api.put(`/api/runsheets/${endRow.id}/end`, endValues);
+      setEndSubmitting(false);
+      setEndRow(null);
+      fetchRunsheets();
+    } catch (err) {
+      console.error('Error ending shift:', err);
+      setEndError(
+        err.response?.data?.error || 'Failed to end shift. Please try again.'
+      );
+      setEndSubmitting(false);
     }
   };
 
@@ -420,17 +466,28 @@ const RunsheetList = () => {
                         <td>{runsheet.shiftDate}</td>
                         <td>{runsheet.bookOnTime}</td>
                         <td>{runsheet.bookOffTime}</td>
-                        <td>{runsheet.trust}</td>
+                      <td>{runsheet.trust}</td>
                       <td>{runsheet.callsign}</td>
                         <td>{runsheet.shiftEnded ? 'True' : 'False'}</td>
                         <td>
-                        <button
-                          type="button"
-                          className="btn-link"
-                          onClick={() => setViewRow(runsheet)}
-                        >
-                          View
-                        </button>
+                        <div className="runsheet-actions">
+                          <button
+                            type="button"
+                            className="btn-link"
+                            onClick={() => setViewRow(runsheet)}
+                          >
+                            View
+                          </button>
+                          {!runsheet.shiftEnded && (
+                            <button
+                              type="button"
+                              className="btn-link"
+                              onClick={() => openEndShift(runsheet)}
+                            >
+                              End Shift
+                            </button>
+                          )}
+                        </div>
                         </td>
                       </tr>
                     ))}
@@ -563,6 +620,116 @@ const RunsheetList = () => {
                   <h4>Comments / Notes</h4>
                   <p>{viewRow.commentsNotes || '—'}</p>
                 </section>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {endRow && (
+          <div
+            className="runsheet-view-overlay"
+            onClick={() => setEndRow(null)}
+            role="presentation"
+          >
+            <div
+              className="runsheet-view-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="runsheet-view-header">
+                <h3>End Shift – Runsheet ID {endRow.id}</h3>
+                <button
+                  type="button"
+                  className="runsheet-view-close"
+                  onClick={() => setEndRow(null)}
+                  aria-label="Close"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="runsheet-view-body">
+                {endError && (
+                  <div className="runsheet-form-error" style={{ marginBottom: 10 }}>
+                    {endError}
+                  </div>
+                )}
+                <form onSubmit={handleEndSubmit} className="runsheet-form-grid">
+                  <div className="runsheet-form-group">
+                    <label>Meal Break</label>
+                    <select
+                      name="mealBreak"
+                      value={endValues.mealBreak}
+                      onChange={handleEndChange}
+                      required
+                    >
+                      <option value="">Select...</option>
+                      <option value="Non-disturbed">Non-disturbed</option>
+                      <option value="Disturbed">Disturbed</option>
+                    </select>
+                  </div>
+
+                  <div className="runsheet-form-group">
+                    <label>(EOS) Drug Bag</label>
+                    <select
+                      name="eosDrugBag"
+                      value={endValues.eosDrugBag}
+                      onChange={handleEndChange}
+                      required
+                    >
+                      <option value="">Select...</option>
+                      <option value="Sealed">Sealed</option>
+                      <option value="Unsealed">Unsealed</option>
+                    </select>
+                  </div>
+
+                  <div className="runsheet-form-group">
+                    <label>(EOS) Mileage</label>
+                    <input
+                      type="text"
+                      name="eosMileage"
+                      value={endValues.eosMileage}
+                      onChange={handleEndChange}
+                      required
+                    />
+                  </div>
+
+                  <div className="runsheet-form-group">
+                    <label>(EOS) Book Off Time</label>
+                    <input
+                      type="text"
+                      name="eosBookOffTime"
+                      value={endValues.eosBookOffTime}
+                      onChange={handleEndChange}
+                      placeholder="e.g. 06:45"
+                      required
+                    />
+                  </div>
+
+                  <div className="runsheet-form-group">
+                    <label>(EOS) Fuel</label>
+                    <select
+                      name="eosFuel"
+                      value={endValues.eosFuel}
+                      onChange={handleEndChange}
+                      required
+                    >
+                      <option value="">Select...</option>
+                      <option value="Full">Full</option>
+                      <option value="3/4">3/4</option>
+                      <option value="1/2">1/2</option>
+                      <option value="1/4">1/4</option>
+                    </select>
+                  </div>
+
+                  <div className="runsheet-form-actions">
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={endSubmitting}
+                    >
+                      {endSubmitting ? 'Saving...' : 'Save End Shift'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>

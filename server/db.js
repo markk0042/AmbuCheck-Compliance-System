@@ -165,6 +165,29 @@ async function addRunsheet(runsheet) {
   return newRunsheet;
 }
 
+async function updateRunsheet(id, updates) {
+  if (useDb) {
+    // Remove undefined fields so we don't overwrite existing data with nulls
+    const clean = {};
+    Object.entries(updates || {}).forEach(([key, value]) => {
+      if (value !== undefined) clean[key] = value;
+    });
+    const r = await pool.query(
+      'UPDATE runsheets SET data = data || $2::jsonb WHERE id = $1 RETURNING id, data',
+      [id, JSON.stringify(clean)]
+    );
+    if (!r.rows[0]) return null;
+    const row = r.rows[0];
+    return { id: row.id, ...row.data };
+  }
+  const existing = readJSON('runsheets.json', []);
+  const idx = existing.findIndex((r) => r.id === parseInt(id, 10));
+  if (idx === -1) return null;
+  existing[idx] = { ...existing[idx], ...(updates || {}) };
+  writeJSON('runsheets.json', existing);
+  return existing[idx];
+}
+
 async function getFormSubmissions(formId) {
   if (useDb) {
     const r = await pool.query(
@@ -442,6 +465,7 @@ module.exports = {
   getRunsheets,
   setRunsheets,
   addRunsheet,
+  updateRunsheet,
   getFormSubmissions,
   addFormSubmission,
   getFormSubmissionById,

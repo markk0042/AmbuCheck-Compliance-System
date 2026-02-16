@@ -384,7 +384,7 @@ app.post('/api/runsheets', authenticateToken, async (req, res) => {
     bookOffTime: bookOffTime || '',
     trust: trustContract || '',
     callsign: trustCallsign || '',
-    shiftEnded: true,
+    shiftEnded: false,
     trustStation: trustStation || '',
     trustContract: trustContract || '',
     trustCallsign: trustCallsign || '',
@@ -416,6 +416,38 @@ app.post('/api/runsheets', authenticateToken, async (req, res) => {
   } catch (err) {
     console.error('[Runsheets] Failed to create runsheet:', err.message);
     res.status(500).json({ error: 'Failed to create runsheet' });
+  }
+});
+
+// End shift for an existing runsheet (update EOS fields)
+app.put('/api/runsheets/:id/end', authenticateToken, async (req, res) => {
+  const { id } = req.params;
+  const {
+    mealBreak,
+    eosDrugBag,
+    eosMileage,
+    eosBookOffTime,
+    eosFuel,
+  } = req.body || {};
+
+  const updates = {
+    shiftEnded: true,
+    mealBreak: mealBreak ?? '',
+    eosDrugBag: eosDrugBag ?? '',
+    eosMileage: eosMileage ?? '',
+    eosBookOffTime: eosBookOffTime ?? '',
+    eosFuel: eosFuel ?? '',
+  };
+
+  try {
+    const updated = await db.updateRunsheet(id, updates);
+    if (!updated) {
+      return res.status(404).json({ error: 'Runsheet not found' });
+    }
+    res.json(updated);
+  } catch (err) {
+    console.error('[Runsheets] Failed to end shift:', err.message);
+    res.status(500).json({ error: 'Failed to end shift' });
   }
 });
 
