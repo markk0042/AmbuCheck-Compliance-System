@@ -33,11 +33,6 @@ const RunsheetList = () => {
     crew2Name: '',
     crew2Pin: '',
     crew2Grade: '',
-    mealBreak: '',
-    eosDrugBag: '',
-    eosMileage: '',
-    eosBookOffTime: '',
-    eosFuel: '',
     commentsNotes: '',
   });
   const [viewRow, setViewRow] = useState(null);
@@ -129,11 +124,6 @@ const RunsheetList = () => {
         crew2Name: '',
         crew2Pin: '',
         crew2Grade: '',
-        mealBreak: '',
-        eosDrugBag: '',
-        eosMileage: '',
-        eosBookOffTime: '',
-        eosFuel: '',
         commentsNotes: '',
       });
       fetchRunsheets();
@@ -444,53 +434,6 @@ const RunsheetList = () => {
                     type="text"
                     name="crew2Grade"
                     value={formValues.crew2Grade}
-                    onChange={handleFormChange}
-                  />
-                </div>
-
-                <div className="runsheet-form-group">
-                  <label>Meal Break</label>
-                  <input
-                    type="text"
-                    name="mealBreak"
-                    value={formValues.mealBreak}
-                    onChange={handleFormChange}
-                  />
-                </div>
-
-                <div className="runsheet-form-group">
-                  <label>(EOS) Drug Bag</label>
-                  <input
-                    type="text"
-                    name="eosDrugBag"
-                    value={formValues.eosDrugBag}
-                    onChange={handleFormChange}
-                  />
-                </div>
-                <div className="runsheet-form-group">
-                  <label>(EOS) Mileage</label>
-                  <input
-                    type="text"
-                    name="eosMileage"
-                    value={formValues.eosMileage}
-                    onChange={handleFormChange}
-                  />
-                </div>
-                <div className="runsheet-form-group">
-                  <label>(EOS) Book Off Time</label>
-                  <input
-                    type="text"
-                    name="eosBookOffTime"
-                    value={formValues.eosBookOffTime}
-                    onChange={handleFormChange}
-                  />
-                </div>
-                <div className="runsheet-form-group">
-                  <label>(EOS) Fuel</label>
-                  <input
-                    type="text"
-                    name="eosFuel"
-                    value={formValues.eosFuel}
                     onChange={handleFormChange}
                   />
                 </div>
